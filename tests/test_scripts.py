@@ -573,5 +573,15 @@ class UndoTests(Fixture):
         self.assertFalse(self.backups.exists())
 
 
+class DocsTests(unittest.TestCase):
+    def test_bash_blocks_parse(self):
+        for doc in [ROOT / 'README.md', ROOT / 'docs/maintaining.md']:
+            blocks = re.findall(r'^ *```bash\n(.*?)^ *```', doc.read_text(), re.MULTILINE | re.DOTALL)
+            self.assertTrue(blocks, doc)
+            for block in blocks:
+                result = subprocess.run(['/bin/bash', '-n'], input=block, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, (doc.name, block, result.stderr))
+
+
 if __name__ == '__main__':
     unittest.main()
