@@ -91,7 +91,13 @@ $PLAN
 EOF
 
 # Codex still reads the deprecated ~/.codex/skills and would list these skills twice.
+# Skip it when it is the same folder as ~/.agents/skills (a symlink, or CODEX_HOME=~/.agents):
+# its entries are the links just made.
+resolved() { (cd -P "$1" 2>/dev/null && pwd -P) || true; }
+legacy_real="$(resolved "$LEGACY_CODEX_DIR")"
+[ -n "$legacy_real" ] && [ "$legacy_real" = "$(resolved "$CODEX_DIR")" ] && LEGACY_CODEX_DIR=""
 for n in $(skills_in skills) $(skills_in codex-only); do
+  [ -n "$LEGACY_CODEX_DIR" ] || break
   if [ -e "$LEGACY_CODEX_DIR/$n" ] || [ -L "$LEGACY_CODEX_DIR/$n" ]; then
     move_aside "$LEGACY_CODEX_DIR/$n" codex-legacy
   fi

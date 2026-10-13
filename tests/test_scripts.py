@@ -268,6 +268,22 @@ class LinkTests(Fixture):
         self.assertFalse((self.home / 'custom-codex/skills/custom').exists())
         self.assertFalse(self.claude.exists())
 
+    def test_legacy_folder_that_is_the_agents_folder_keeps_links(self):
+        for setup in ['symlink', 'CODEX_HOME']:
+            with self.subTest(setup=setup):
+                self.setUp()
+                skill = self.skill(self.repo / 'skills', 'shared')
+                self.codex.mkdir(parents=True)
+                if setup == 'symlink':
+                    self.legacy.parent.mkdir(parents=True)
+                    self.legacy.symlink_to(self.codex)
+                else:
+                    self.env['CODEX_HOME'] = str(self.home / '.agents')
+                out = self.run_script('link.sh')
+                self.assertLinks(self.codex / 'shared', skill)
+                self.assertNotIn('codex-legacy', out)
+                self.assertFalse(self.backups.exists())
+
     def test_same_second_runs_keep_separate_backups(self):
         self.skill(self.repo / 'codex-only', 'example')
         fake_bin = self.root / 'bin'
