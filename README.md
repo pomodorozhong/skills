@@ -1,6 +1,6 @@
 # skills
 
-My agent skills, shared by every agent. Each skill is a folder under `skills/` with a `SKILL.md`.
+Agent skills I use with Claude Code and Codex. Each one is a folder under `skills/` with a `SKILL.md`, so they work with any agent that reads that format.
 
 ## Skills
 
@@ -11,8 +11,20 @@ My agent skills, shared by every agent. Each skill is a folder under `skills/` w
 
 ## Install
 
+Pick skills interactively:
+
+```bash
+npx skills add pomodorozhong/skills
+```
+
+Or install specific ones for all your agents:
+
 ```bash
 npx skills add pomodorozhong/skills --skill commit --skill wrap-up -g -y
 ```
 
-This installs copies; re-run it to pick up changes pushed here.
+`-g` installs for your user rather than the current project. To update, run the command again.
+
+## Maintaining
+
+How I back up and link these skills: [docs/maintaining.md](docs/maintaining.md).
