@@ -1,4 +1,4 @@
-# Maintaining these skills: the linking flow
+# Maintaining these skills: backup and linking
 
 For the repo owner. To just use the skills, see the [README](../README.md).
 
@@ -9,6 +9,26 @@ This repo is the installation: [`scripts/link.sh`](../scripts/link.sh) links eac
 - `skills/`: shared by every agent, and what `npx skills add` installs
 - `codex-only/`, `claude-only/`: linked into one agent only (create when needed)
 - `scripts/link.sh`: creates and prunes the links; safe to re-run
+- `scripts/import.sh`: backs up skills already installed in the agents' folders into this repo
+
+## Back up skills you already have
+
+Run this when skills exist only in the agents' folders: a skill written or installed before this repo, or on a machine that was never linked. It copies, it doesn't move or link, so nothing changes for the agents until you run `link.sh`.
+
+```bash
+scripts/import.sh
+git status --short
+```
+
+It reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, and skips Codex's bundled `.system` and Claude Code's `synced` folders. A skill only one agent has, or both have identically, goes to `skills/`. A skill both have with different contents goes to both `codex-only/` and `claude-only/` and is printed as `DIFFERENT in each agent, review: <name>`: merge them into `skills/<name>` or keep both. It never overwrites a skill already in the repo.
+
+Then, before linking and committing:
+
+- **Delete other people's skills** from the repo (`import.sh` copies everything it finds); reinstall those with `npx skills add` instead.
+- **Delete skills you don't want public:** this repo is public.
+- **Check each `SKILL.md` and helper script** for secrets, private examples, and machine-specific paths.
+
+Then run `scripts/link.sh --dry-run` and `scripts/link.sh` so the agents use the repo copies, and commit.
 
 ## Set up a machine
 
