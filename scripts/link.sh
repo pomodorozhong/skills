@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Link every skill in this repo into the Codex and Claude Code personal skill folders.
 # Safe to re-run. Real folders it would replace are moved to ~/skills-link-backup/<timestamp>-<pid>/.
-# Usage: ./link.sh [--dry-run]
+# Usage: scripts/link.sh [--dry-run]
 set -euo pipefail
 
 DRY=0
@@ -14,7 +14,7 @@ if [ "$#" -gt 0 ]; then
   fi
 fi
 
-REPO="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 CODEX_DIR="$HOME/.agents/skills"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
 LEGACY_CODEX_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
