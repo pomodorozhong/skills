@@ -1,4 +1,4 @@
-"""Fixture tests for scripts/link.sh.
+"""Fixture tests for scripts/import.sh and scripts/link.sh.
 
 Each test builds a throwaway repo and home folder, copies the scripts into the
 repo's scripts/ folder, and runs them with macOS's /bin/bash. Nothing touches
@@ -43,7 +43,7 @@ class Fixture(unittest.TestCase):
         self.home = self.root / 'home'
         (self.repo / 'scripts').mkdir(parents=True)
         self.home.mkdir()
-        for name in ['link.sh']:
+        for name in ['import.sh', 'link.sh']:
             shutil.copy2(SCRIPTS / name, self.repo / 'scripts' / name)
         self.env = dict(os.environ, HOME=str(self.home))
         self.env.pop('CODEX_HOME', None)
@@ -69,6 +69,77 @@ class Fixture(unittest.TestCase):
     def assertLinks(self, path, target):
         self.assertTrue(path.is_symlink(), path)
         self.assertEqual(os.readlink(path), str(target))
+
+
+class ImportTests(Fixture):
+    def test_imports_identical_copies_into_skills(self):
+        self.skill(self.codex, 'codex-first')
+        self.skill(self.legacy, 'legacy-only')
+        self.skill(self.claude, 'claude-first')
+        shared = self.skill(self.codex, 'shared')
+        self.skill(self.legacy, 'shared')
+        self.skill(self.claude, 'shared')
+        self.skill(self.legacy, '.system')
+        self.skill(self.claude, 'synced')
+        helper = shared / 'helper.sh'
+        helper.write_text('#!/bin/sh\nexit 0\n')
+        helper.chmod(0o755)
+        for folder in [self.legacy, self.claude]:  # identical copies, supporting files included
+            copy = folder / 'shared/helper.sh'
+            copy.write_text(helper.read_text())
+            copy.chmod(0o755)
+        outside = self.skill(self.root / 'external', 'linked-source')
+        (self.codex / 'linked-source').symlink_to(outside)
+
+        self.run_script('import.sh')
+
+        for name in ['codex-first', 'legacy-only', 'claude-first', 'shared', 'linked-source']:
+            self.assertTrue((self.repo / 'skills' / name / 'SKILL.md').is_file(), name)
+        self.assertFalse((self.repo / 'skills/linked-source').is_symlink())
+        self.assertTrue((self.repo / 'skills/shared/helper.sh').stat().st_mode & 0o111)
+        for excluded in ['skills/.system', 'skills/synced', '.import', 'scripts/skills', 'codex-only', 'claude-only']:
+            self.assertFalse((self.repo / excluded).exists(), excluded)
+
+    def test_differing_copies_are_skipped_and_listed(self):
+        cases = [('codex-vs-claude', self.codex, self.claude), ('codex-folders', self.codex, self.legacy),
+                 ('legacy-vs-claude', self.legacy, self.claude)]
+        for name, first, second in cases:
+            self.skill(first, name, 'one version')
+            self.skill(second, name, 'another version')
+        self.skill(self.codex, 'other')
+        out = self.run_script('import.sh')
+        self.assertIn('Not imported, installed copies differ: codex-folders codex-vs-claude legacy-vs-claude', out)
+        for name, _, _ in cases:
+            self.assertFalse((self.repo / 'skills' / name).exists(), name)
+        self.assertTrue((self.repo / 'skills/other/SKILL.md').is_file())
+
+    def test_executable_bit_difference_is_a_difference(self):
+        for folder, mode in [(self.codex, 0o644), (self.claude, 0o755)]:
+            helper = self.skill(folder, 'tool') / 'helper.sh'
+            helper.write_text('#!/bin/sh\nexit 0\n')
+            helper.chmod(mode)
+        self.assertIn('copies differ: tool', self.run_script('import.sh'))
+        self.assertFalse((self.repo / 'skills/tool').exists())
+
+    def test_rerun_never_overwrites_repo(self):
+        self.skill(self.codex, 'codex-first')
+        self.run_script('import.sh')
+        imported = snapshot(self.repo)
+        (self.codex / 'codex-first/SKILL.md').write_text('changed installed source')
+        self.assertIn('not overwritten: skills/codex-first', self.run_script('import.sh'))
+        self.assertEqual(snapshot(self.repo), imported)
+
+    def test_linked_skills_are_not_imported_again(self):
+        mine = self.skill(self.repo / 'skills', 'mine')
+        self.run_script('link.sh')
+        before = snapshot(self.repo)
+        self.assertIn('not overwritten: skills/mine', self.run_script('import.sh'))
+        self.assertEqual(snapshot(self.repo), before)
+        self.assertLinks(self.claude / 'mine', mine)
+
+    def test_absent_source_folders(self):
+        self.run_script('import.sh')
+        self.assertTrue((self.repo / 'skills').is_dir())
 
 
 class LinkTests(Fixture):
