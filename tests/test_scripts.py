@@ -115,6 +115,35 @@ class ImportTests(Fixture):
         self.assertIn('not overwritten', self.run_script('import.sh'))
         self.assertEqual(snapshot(self.repo), imported)
 
+    def test_name_in_any_repo_folder_is_not_imported_again(self):
+        codex_only = self.skill(self.repo / 'codex-only', 'mine')
+        self.skill(self.repo / 'claude-only', 'theirs')
+        self.codex.mkdir(parents=True)
+        (self.codex / 'mine').symlink_to(codex_only)  # as link.sh leaves it
+        self.skill(self.claude, 'theirs', 'installed copy')
+        out = self.run_script('import.sh')
+        self.assertIn('not overwritten: codex-only/mine', out)
+        self.assertIn('not overwritten: claude-only/theirs', out)
+        self.assertFalse((self.repo / 'skills/mine').exists())
+        self.assertFalse((self.repo / 'skills/theirs').exists())
+        self.run_script('link.sh')
+
+    def test_executable_bit_difference_is_not_shared(self):
+        for folder, mode in [(self.codex, 0o644), (self.claude, 0o755)]:
+            helper = self.skill(folder, 'tool') / 'helper.sh'
+            helper.write_text('#!/bin/sh\nexit 0\n')
+            helper.chmod(mode)
+        self.assertIn('DIFFERENT in each agent, review: tool', self.run_script('import.sh'))
+        self.assertFalse((self.repo / 'skills/tool').exists())
+        self.assertTrue((self.repo / 'claude-only/tool/helper.sh').stat().st_mode & 0o100)
+
+    def test_executable_bit_difference_between_codex_folders_stops(self):
+        for folder, mode in [(self.codex, 0o644), (self.legacy, 0o755)]:
+            helper = self.skill(folder, 'tool') / 'helper.sh'
+            helper.write_text('#!/bin/sh\nexit 0\n')
+            helper.chmod(mode)
+        self.assertIn('Nothing imported', self.run_script('import.sh', expected=1))
+
     def test_conflicting_codex_versions_stop_before_import(self):
         self.skill(self.codex, 'conflict', 'new')
         self.skill(self.legacy, 'conflict', 'old')

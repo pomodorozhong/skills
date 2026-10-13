@@ -19,13 +19,19 @@ mkdir -p "$STAGE/agents" "$STAGE/legacy" "$STAGE/claude"
 [ -d "$LEGACY_CODEX_SRC" ] && rsync -aL "${EXCLUDES[@]}" "$LEGACY_CODEX_SRC/" "$STAGE/legacy/"
 [ -d "$CLAUDE_SRC" ]       && rsync -aL "${EXCLUDES[@]}" "$CLAUDE_SRC/" "$STAGE/claude/"
 
+# Same files, contents, and executable bits. diff -rq alone ignores permissions.
+same() {
+  diff -rq "$1" "$2" >/dev/null &&
+    [ "$(cd "$1" && find . -type f -perm -100 | sort)" = "$(cd "$2" && find . -type f -perm -100 | sort)" ]
+}
+
 # Codex reads both of its folders. Merge them only when they don't disagree.
 conflicts=""
 for d in "$STAGE"/legacy/*/; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
   if [ -d "$STAGE/agents/$name" ]; then
-    if diff -rq "$d" "$STAGE/agents/$name" >/dev/null; then
+    if same "$d" "$STAGE/agents/$name"; then
       rm -rf "$d"
     else
       conflicts="$conflicts $name"
@@ -43,33 +49,41 @@ fi
 
 mkdir -p "$REPO/skills" "$REPO/codex-only" "$REPO/claude-only"
 
+# A name already in any repo folder is never imported again, so link.sh can't see it twice.
+in_repo() {  # $1 = skill name
+  local f
+  for f in skills codex-only claude-only; do
+    if [ -e "$REPO/$f/$1" ]; then
+      echo "already in repo, not overwritten: $f/$1" >&2
+      return 0
+    fi
+  done
+  return 1
+}
+
 place() {  # $1 = staged skill folder, $2 = destination folder
-  local name; name="$(basename "$1")"
-  if [ -e "$2/$name" ]; then
-    echo "already in repo, not overwritten: $2/$name" >&2
-  else
-    mv "$1" "$2/"
-    echo "imported: ${2#$REPO/}/$name"
-  fi
+  mv "$1" "$2/"
+  echo "imported: ${2#$REPO/}/$(basename "$1")"
 }
 
 for d in "$STAGE"/agents/*/; do
   [ -f "$d/SKILL.md" ] || continue
   name="$(basename "$d")"
   other="$STAGE/claude/$name"
-  if [ ! -d "$other" ]; then
+  if in_repo "$name"; then
+    rm -rf "$other"
+  elif [ ! -d "$other" ]; then
     place "$d" "$REPO/skills"
-  elif diff -rq "$d" "$other" >/dev/null; then
+  elif same "$d" "$other"; then
     place "$d" "$REPO/skills"; rm -rf "$other"
   else
     place "$d" "$REPO/codex-only"; place "$other" "$REPO/claude-only"
-    # A skipped existing entry must not be imported again as a shared Claude-only skill.
-    rm -rf "$other"
     echo "DIFFERENT in each agent, review: $name"
   fi
 done
 for d in "$STAGE"/claude/*/; do
-  [ -f "$d/SKILL.md" ] && place "$d" "$REPO/skills"
+  [ -f "$d/SKILL.md" ] || continue
+  in_repo "$(basename "$d")" || place "$d" "$REPO/skills"
 done
 
 rm -rf "$STAGE"
