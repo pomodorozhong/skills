@@ -1,35 +1,17 @@
-# Maintaining these skills: backup and linking
+# Maintaining these skills
 
-For the repo owner. To just use the skills, see the [README](../README.md).
+This guide covers editing, backing up, and installing the skills in this repository on your own machines. To only install them, see the [README](../README.md). The approach follows [Back up and install Codex and Claude Code skills from one Git repo](https://github.com/pomodorozhong/rabbit-holes/blob/master/topics/agent_skills/backup-and-restore.md).
 
-This repo is the installation: [`scripts/link.sh`](../scripts/link.sh) links each skill folder into the folders Codex (`~/.agents/skills`) and Claude Code (`~/.claude/skills`) read. Editing a skill anywhere, by hand or by an agent, edits it here, so there is nothing to copy. Backing up is commit and push. Based on [Back up and install Codex and Claude Code skills from one Git repo](https://github.com/pomodorozhong/rabbit-holes/blob/master/topics/agent_skills/backup-and-restore.md).
+## How it works
 
-## Layout
+[`scripts/link.sh`](../scripts/link.sh) links each skill in `skills/` into the folders the agents read:
 
-- `skills/`: every skill, linked into both agents, and what `npx skills add` installs. There are no per-agent folders: one version of each skill, for everyone.
-- `scripts/link.sh`: creates and prunes the links; safe to re-run, and each run can be undone
-- `scripts/import.sh`: backs up skills already installed in the agents' folders into this repo
-
-## Back up skills you already have
-
-Run this when skills exist only in the agents' folders: a skill written or installed before this repo, or on a machine that was never linked. It copies, it doesn't move or link, so nothing changes for the agents until you run `link.sh`.
-
-```bash
-scripts/import.sh
-git status --short
+```text
+~/.agents/skills/commit  -> ~/repo/skills/skills/commit   (Codex)
+~/.claude/skills/commit  -> ~/repo/skills/skills/commit   (Claude Code)
 ```
 
-It reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, and skips Codex's bundled `.system` and Claude Code's `synced` folders. A skill goes to `skills/` when every installed copy of it is identical (files, contents, and executable bits), including when only one folder has it. It never overwrites a skill already in the repo.
-
-When a name's copies differ, for example Codex and Claude Code each have their own `commit`, it is skipped and listed under `Not imported, installed copies differ:`. Decide which version to keep, merging the changes you want into it, move the other copies out of the agents' folders, and run `import.sh` again. If they are really different skills that share a name, rename one first.
-
-Then, before linking and committing:
-
-- **Delete other people's skills** from the repo (`import.sh` copies everything it finds); reinstall those with `npx skills add` instead.
-- **Delete skills you don't want public:** this repo is public.
-- **Check each `SKILL.md` and helper script** for secrets, private examples, and machine-specific paths.
-
-Then run `scripts/link.sh --dry-run` and `scripts/link.sh` so the agents use the repo copies, and commit.
+Both agents read the repository's files, so an edit made anywhere, by you or by an agent, is already in the repository. To back it up, commit and push. Every skill lives in `skills/`, which is also what `npx skills add` installs for other people.
 
 ## Set up a machine
 
@@ -40,67 +22,85 @@ scripts/link.sh --dry-run
 scripts/link.sh
 ```
 
-The dry run prints every change first. `link.sh` never deletes: an existing skill folder it replaces is moved to `~/skills-link-backup/<timestamp>-<pid>/`, and an old copy in `~/.codex/skills` is moved there too so Codex doesn't list the skill twice. A run that changes something ends with the command to undo it.
+Read the dry run before linking. `+ mv` lines are existing folders that will be moved aside, and `replacing link` lines show where an existing link pointed. `link.sh` never deletes: moved folders go to a run folder, `~/skills-link-backup/<timestamp>-<pid>/`. It also moves old copies out of `~/.codex/skills`, which Codex still reads, so skills aren't listed twice.
 
-Check with `ls -l ~/.agents/skills ~/.claude/skills`: each skill should point into this repo. Then start a new session and type `/` (Claude Code) or `$` (Codex).
+Check that each skill points into the repository:
 
-Don't move or delete this folder after linking; the links point into it. If you do, re-run `scripts/link.sh` from the new location.
+```bash
+ls -l ~/.agents/skills ~/.claude/skills
+```
 
-## Daily use
+Then start a new session and type `/` in Claude Code or `$` in Codex to see the skills.
 
-- **Edit a skill:** edit it in place, then commit and push.
-- **Add a skill:** create `skills/<name>/SKILL.md`, then run `scripts/link.sh`.
-- **Remove a skill:** delete its folder, then run `scripts/link.sh` to remove its links.
-- **Get changes from another machine:** `git pull`. Run `scripts/link.sh` too if skills were added or removed.
+The links depend on the repository's location. If you move it, run `scripts/link.sh` again from the new location.
+
+## Edit, add, and remove skills
+
+- **Edit:** change the files in place, then commit and push. The agents use the edit right away.
+- **Add:** create `skills/<name>/SKILL.md`, then run `scripts/link.sh`.
+- **Remove:** delete the skill's folder, then run `scripts/link.sh` to remove its links.
+- **Sync from another machine:** `git pull`. Run `scripts/link.sh` too if skills were added or removed.
+
+## Keep `main` checked out
+
+The agents read whatever is checked out in this folder, and they pick up changes immediately, even in open sessions. Switching branches switches the skills every agent runs: an unmerged change disappears when you leave its branch, and a half-finished one goes into use when you check it out.
+
+- **Keep `main` checked out here,** and run `git pull` after each merge.
+- **Make changes in a separate worktree,** so this folder never leaves `main`:
+
+  ```bash
+  git worktree add ../skills-wip -b fix/my-skill
+  ```
+
+  Edit, commit, and push from `../skills-wip`. The agents keep running `main` until the pull request merges and you pull. Afterwards, remove it with `git worktree remove ../skills-wip`.
+- **If you edited through the links,** the change is uncommitted on `main` here. Run `git switch -c <branch>`, commit, push, and switch back to `main`. The agents use the previous version until the pull request merges and you pull; the edit is safe on its branch.
+
+To see which version the agents are running:
+
+```bash
+git -C ~/repo/skills status -sb
+```
+
+## Import skills you already have
+
+For skills installed before this repository existed, copy them from the agents' folders into `skills/`:
+
+```bash
+scripts/import.sh
+git status --short
+```
+
+The script reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, skipping the folders the tools manage (`.system` and `synced`). It copies rather than moves, and never overwrites a skill already in the repository.
+
+Each skill has one shared version, so a name is imported only when all its installed copies are identical, executable permissions included. Names listed under `Not imported, installed copies differ:` need a decision: keep one version (merging in anything you want from the others), move the other copies out of the agents' folders, and run `import.sh` again. If they're different skills that share a name, rename one first.
+
+Before committing the imported skills:
+
+- Remove skills written by other people, and install those with `npx skills add` instead.
+- Remove skills you don't want public; this repository is public.
+- Check each `SKILL.md` and helper script for secrets and machine-specific paths.
+
+Then run `scripts/link.sh --dry-run` and `scripts/link.sh`, and commit.
 
 ## Undo a link run
 
-Each run that changes something writes its run folder, `~/skills-link-backup/<timestamp>-<pid>/`, with a `changes.log` of every link it made, link it replaced (with the old target), and folder it moved aside. The last line of the run prints the exact command:
+Each run that changes something records its changes in `changes.log` in its run folder, and ends by printing the command to undo it. Preview, then undo:
 
 ```bash
 scripts/link.sh --undo ~/skills-link-backup/20261014-043257-60234 --dry-run
 scripts/link.sh --undo ~/skills-link-backup/20261014-043257-60234
 ```
 
-Preview first: the dry run lists every change and every `skip:`. Undo puts back the moved folders and the old links, and removes the links it made.
+Undo moves folders back, restores previous links, and removes the links the run made. A run that stopped partway can be undone the same way.
 
 - **Undo the newest run first** when undoing several.
-- **It never overwrites newer changes.** If something has changed since the run (a new folder where the original goes, a link pointing elsewhere), that item is skipped with `skip:`, the run folder is kept, and the undo exits with an error. Move the newer thing aside and run the same command again. A retry leaves already-restored folders alone and resumes an interrupted restoration of an old link.
-- **A run that failed partway can be undone too:** it records each change before making it.
-- **After a full undo,** `changes.log` becomes `changes.log.undone`, and the run folder can be deleted.
+- **Newer changes are never overwritten.** Anything changed since the run is skipped with a `skip:` line, and the run folder is kept. Move the newer item aside and run the same command again; the retry picks up where the last attempt stopped.
+- **After a full undo,** `changes.log` becomes `changes.log.undone`, and you can delete the run folder.
 
-## Gotcha: the checked-out branch is live
+## Test the scripts
 
-The links point at this folder's working tree, not at a branch. So `git switch` doesn't just change what you're editing: it changes which version of every skill your agents run, immediately, including in sessions that are already open (both agents pick up skill edits live).
-
-Found while setting this up: the `wrap-up` change was committed on one branch, and switching to another branch to work on the README quietly put the old `wrap-up` back in front of both agents. Nothing looked wrong; the agents just followed the old instructions.
-
-What it means in practice:
-
-- **Branches undo unmerged work.** Switching to `main` or any other branch drops every skill change that isn't on it until you switch back or it merges.
-- **A branch's experiment goes live.** Checking out a branch with a half-finished skill makes every agent use it, in every project.
-- **Edits through the links land on whatever is checked out.** An agent editing `~/.claude/skills/<name>` edits this working tree, on the current branch.
-- **A rebase, reset, or conflict mid-merge is live too.** Conflict markers in a `SKILL.md` are what the agents read until you resolve them.
-
-How to work with it:
-
-1. **Keep `main` checked out here** and `git pull` after merging, so the agents run what's merged.
-2. **Change skills in a separate worktree** so this checkout never leaves `main`:
-
-   ```bash
-   git worktree add ../skills-wip -b fix/my-skill
-   ```
-
-   Edit, commit, and push there; the agents keep running `main` until the PR merges and you pull. Remove it afterwards with `git worktree remove ../skills-wip`.
-3. **If you edited through the links** (the change is now uncommitted on `main` here), commit it the usual way: `git switch -c <branch>` carries the change over, commit and push, then `git switch main`. From that moment the agents run the old version again until the PR merges and you pull. That's expected, not a lost edit.
-4. **To try a branch's version on purpose,** check it out here, and switch back to `main` when done.
-
-Before trusting a skill's behavior, `git -C ~/repo/skills status -sb` shows which version the agents are running.
-
-## Testing the scripts
+Run the tests after changing either script. They use temporary folders and never touch your installed skills, and they also check that every `bash` block in the README and this guide is valid.
 
 ```bash
 python3 -m unittest discover tests
 ```
-
-[`tests/test_scripts.py`](../tests/test_scripts.py) runs both scripts against throwaway repo and home folders with macOS's `/bin/bash`, so it never touches your real skills. It also syntax-checks the `bash` blocks in the README and this doc. Run it after changing either script.
