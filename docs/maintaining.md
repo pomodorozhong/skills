@@ -71,11 +71,19 @@ How to work with it:
 2. **Change skills in a separate worktree** so this checkout never leaves `main`:
 
    ```bash
-   git worktree add ../skills-<branch> -b <branch>
+   git worktree add ../skills-wip -b fix/my-skill
    ```
 
-   Edit, commit, and push there; the agents keep running `main` until the PR merges and you pull. Remove it afterwards with `git worktree remove ../skills-<branch>`.
+   Edit, commit, and push there; the agents keep running `main` until the PR merges and you pull. Remove it afterwards with `git worktree remove ../skills-wip`.
 3. **If you edited through the links** (the change is now uncommitted on `main` here), commit it the usual way: `git switch -c <branch>` carries the change over, commit and push, then `git switch main`. From that moment the agents run the old version again until the PR merges and you pull. That's expected, not a lost edit.
 4. **To try a branch's version on purpose,** check it out here, and switch back to `main` when done.
 
 Before trusting a skill's behavior, `git -C ~/repo/skills status -sb` shows which version the agents are running.
+
+## Testing the scripts
+
+```bash
+python3 -m unittest discover tests
+```
+
+[`tests/test_scripts.py`](../tests/test_scripts.py) runs both scripts against throwaway repo and home folders with macOS's `/bin/bash`, so it never touches your real skills. It also syntax-checks the `bash` blocks in the README and this doc. Run it after changing either script.
