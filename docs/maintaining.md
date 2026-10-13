@@ -6,8 +6,7 @@ This repo is the installation: [`scripts/link.sh`](../scripts/link.sh) links eac
 
 ## Layout
 
-- `skills/`: shared by every agent, and what `npx skills add` installs
-- `codex-only/`, `claude-only/`: linked into one agent only (create when needed)
+- `skills/`: every skill, linked into both agents, and what `npx skills add` installs. There are no per-agent folders: one version of each skill, for everyone.
 - `scripts/link.sh`: creates and prunes the links; safe to re-run
 - `scripts/import.sh`: backs up skills already installed in the agents' folders into this repo
 
@@ -20,7 +19,9 @@ scripts/import.sh
 git status --short
 ```
 
-It reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, and skips Codex's bundled `.system` and Claude Code's `synced` folders. A skill only one agent has, or both have identically, goes to `skills/`. A skill both have with different contents goes to both `codex-only/` and `claude-only/` and is printed as `DIFFERENT in each agent, review: <name>`: merge them into `skills/<name>` or keep both. It never overwrites a skill already in the repo.
+It reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, and skips Codex's bundled `.system` and Claude Code's `synced` folders. A skill goes to `skills/` when every installed copy of it is identical (files, contents, and executable bits), including when only one folder has it. It never overwrites a skill already in the repo.
+
+When a name's copies differ, for example Codex and Claude Code each have their own `commit`, it is skipped and listed under `Not imported, installed copies differ:`. Decide which version to keep, merging the changes you want into it, move the other copies out of the agents' folders, and run `import.sh` again. If they are really different skills that share a name, rename one first.
 
 Then, before linking and committing:
 
