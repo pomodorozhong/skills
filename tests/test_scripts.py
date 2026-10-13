@@ -242,21 +242,52 @@ class LinkTests(Fixture):
         self.assertFalse((self.home / 'custom-codex/skills/custom').exists())
         self.assertFalse(self.claude.exists())
 
-    def test_legacy_folder_that_is_the_agents_folder_keeps_links(self):
-        for setup in ['symlink', 'CODEX_HOME']:
+    def test_legacy_folder_aliasing_an_active_folder_is_left_alone(self):
+        for setup in ['codex symlink', 'CODEX_HOME', 'claude symlink', 'skills symlink']:
             with self.subTest(setup=setup):
                 self.setUp()
                 skill = self.skill(self.repo / 'skills', 'shared')
                 self.codex.mkdir(parents=True)
-                if setup == 'symlink':
-                    self.legacy.parent.mkdir(parents=True)
-                    self.legacy.symlink_to(self.codex)
-                else:
+                self.claude.mkdir(parents=True)
+                if setup == 'CODEX_HOME':
                     self.env['CODEX_HOME'] = str(self.home / '.agents')
+                else:
+                    target = {'codex symlink': self.codex, 'claude symlink': self.claude,
+                              'skills symlink': self.repo / 'skills'}[setup]
+                    self.legacy.parent.mkdir(parents=True)
+                    self.legacy.symlink_to(target)
                 out = self.run_script('link.sh')
+                self.assertTrue((skill / 'SKILL.md').is_file())
+                self.assertFalse(skill.is_symlink())
                 self.assertLinks(self.codex / 'shared', skill)
+                self.assertLinks(self.claude / 'shared', skill)
                 self.assertNotIn('codex-legacy', out)
                 self.assertEqual(list(self.home.glob('skills-link-backup/*/codex-legacy')), [])
+
+    def test_agent_folder_that_is_skills_is_not_linked_into(self):
+        for setup in ['symlink', 'CLAUDE_CONFIG_DIR']:
+            with self.subTest(setup=setup):
+                self.setUp()
+                skill = self.skill(self.repo / 'skills', 'shared')
+                if setup == 'symlink':
+                    self.claude.parent.mkdir(parents=True)
+                    self.claude.symlink_to(self.repo / 'skills')
+                else:
+                    self.env['CLAUDE_CONFIG_DIR'] = str(self.repo)  # its skills/ folder is the repo's
+                repo_before = snapshot(self.repo)
+                out = self.run_script('link.sh')
+                self.assertIn("is this repo's skills/ folder; nothing to link there", out)
+                self.assertEqual(snapshot(self.repo), repo_before)
+                self.assertLinks(self.codex / 'shared', skill)
+                self.assertNotIn('+ ', self.run_script('link.sh'))
+
+    def test_agent_folder_elsewhere_in_repo_stops_before_changes(self):
+        self.skill(self.repo / 'skills', 'shared')
+        self.claude.parent.mkdir(parents=True)
+        self.claude.symlink_to(self.repo)
+        before = snapshot(self.root)
+        self.assertIn('points into this repo', self.run_script('link.sh', expected=1))
+        self.assertEqual(snapshot(self.root), before)
 
     def test_same_second_runs_keep_separate_backups(self):
         self.skill(self.repo / 'skills', 'example')
