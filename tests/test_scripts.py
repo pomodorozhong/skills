@@ -161,7 +161,8 @@ class ImportTests(Fixture):
 class LinkTests(Fixture):
     def test_rejects_bad_arguments_without_changes(self):
         self.skill(self.repo / 'skills', 'example')
-        for args in [('--undo',), ('--dry-run', '--undo'), ('', '--dry-run'), ('',), ('--dry-run', '--dry-run')]:
+        for args in [('--undo',), ('--dry-run', '--undo'), ('--undo', ''), ('', '--dry-run'), ('',),
+                     ('--dry-run', '--dry-run'), ('--dryrun',)]:
             before = snapshot(self.home)
             self.assertIn('Usage:', self.run_script('link.sh', *args, expected=2), args)
             self.assertEqual(snapshot(self.home), before, args)
@@ -282,7 +283,7 @@ class LinkTests(Fixture):
                 out = self.run_script('link.sh')
                 self.assertLinks(self.codex / 'shared', skill)
                 self.assertNotIn('codex-legacy', out)
-                self.assertFalse(self.backups.exists())
+                self.assertEqual(list(self.home.glob('skills-link-backup/*/codex-legacy')), [])
 
     def test_same_second_runs_keep_separate_backups(self):
         self.skill(self.repo / 'codex-only', 'example')
@@ -300,6 +301,218 @@ class LinkTests(Fixture):
         self.assertEqual(len(backups), 2)
         bodies = {(b / 'codex/example/SKILL.md').read_text().rsplit('\n', 1)[-1] for b in backups}
         self.assertEqual(bodies, {'first original', 'second original'})
+
+
+class UndoTests(Fixture):
+    """link.sh records each run in <backup run folder>/changes.log; --undo <run folder> reverses it."""
+
+    def symlink(self, dest, target):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(target)
+
+    def run_folders(self):
+        return sorted(log.parent for log in self.backups.glob('*/changes.log'))
+
+    def hold(self):
+        folders = self.run_folders()
+        self.assertEqual(len(folders), 1)
+        return folders[0]
+
+    def commands(self, text):
+        return [line for line in text.splitlines() if line.startswith('+ ')]
+
+    def fake(self, command, body):
+        """Put a failing or wrapped command first on PATH."""
+        fake_bin = self.root / 'bin'
+        fake_bin.mkdir(exist_ok=True)
+        script = fake_bin / command
+        script.write_text('#!/bin/bash\n' + body + '\n')
+        script.chmod(0o755)
+        self.env['PATH'] = str(fake_bin) + ':' + os.environ['PATH']
+
+    def readonly_backups(self):
+        self.backups.mkdir()
+        self.backups.chmod(0o500)
+        self.addCleanup(self.backups.chmod, 0o700)
+
+    def preview_then_undo(self, run_folder):
+        """Undo preview changes nothing and plans exactly what the real undo does."""
+        before = snapshot(self.home)
+        preview = self.run_script('link.sh', '--undo', str(run_folder), '--dry-run')
+        self.assertEqual(snapshot(self.home), before)
+        actual = self.run_script('link.sh', '--undo', str(run_folder))
+        self.assertEqual(self.commands(preview), self.commands(actual))
+        return preview
+
+    # Runs record before they change anything.
+
+    def test_unwritable_backup_preserves_existing_link(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.symlink(self.codex / 'sample', self.home / 'external/sample')
+        self.readonly_backups()
+        before = snapshot(self.home)
+        self.assertIn('Permission denied', self.run_script('link.sh', expected=1))
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_unwritable_backup_preserves_pruned_link(self):
+        self.symlink(self.codex / 'deleted', self.repo / 'skills/deleted')
+        self.readonly_backups()
+        before = snapshot(self.home)
+        self.run_script('link.sh', expected=1)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_unwritable_backup_preserves_real_folder(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.codex, 'sample', 'original')
+        self.readonly_backups()
+        before = snapshot(self.home)
+        self.run_script('link.sh', expected=1)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_log_write_failure_preserves_existing_link(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.symlink(self.codex / 'sample', '../../external/sample')
+        self.fake('mkdir', '/bin/mkdir "$@" || exit\nfor p in "$@"; do\n'
+                           '  case "$p" in */skills-link-backup/*) : > "$p/changes.log"; '
+                           '/bin/chmod 444 "$p/changes.log" ;; esac\ndone')
+        self.run_script('link.sh', expected=1)
+        self.assertEqual(os.readlink(self.codex / 'sample'), '../../external/sample')
+        self.assertEqual((self.hold() / 'changes.log').read_text(), '')
+
+    # Undo restores what the run replaced.
+
+    def test_undo_restores_real_folder(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.skill(self.claude, 'sample', 'original')
+        out = self.run_script('link.sh')
+        self.assertIn('To undo this run:', out)
+        preview = self.preview_then_undo(self.hold())
+        self.assertNotIn('skip:', preview)
+        self.assertTrue((self.claude / 'sample/SKILL.md').read_text().endswith('original'))
+
+    def test_undo_restores_relative_link(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.symlink(self.claude / 'sample', '../../external/sample')
+        self.run_script('link.sh')
+        self.preview_then_undo(self.hold())
+        self.assertEqual(os.readlink(self.claude / 'sample'), '../../external/sample')
+
+    def test_unchanged_links_survive_undo(self):
+        for name in ['unchanged', 'replaced']:
+            self.skill(self.repo / 'skills', name)
+        for folder in [self.codex, self.claude]:
+            self.symlink(folder / 'unchanged', self.repo / 'skills/unchanged')
+        self.skill(self.claude, 'replaced', 'original')
+        self.run_script('link.sh')
+        self.run_script('link.sh', '--undo', str(self.hold()))
+        self.assertTrue((self.codex / 'unchanged').is_symlink())
+        self.assertTrue((self.claude / 'unchanged').is_symlink())
+
+    def test_legacy_folder_and_link_undo(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.skill(self.repo / 'codex-only', 'second')
+        self.skill(self.legacy, 'sample', 'legacy')
+        self.symlink(self.legacy / 'second', '../../external/second')
+        self.run_script('link.sh')
+        self.preview_then_undo(self.hold())
+        self.assertTrue((self.legacy / 'sample/SKILL.md').read_text().endswith('legacy'))
+        self.assertEqual(os.readlink(self.legacy / 'second'), '../../external/second')
+
+    def test_scope_move_and_undo_newest_first(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.run_script('link.sh')
+        first = self.hold()
+        (self.repo / 'codex-only').mkdir()
+        shutil.move(str(self.repo / 'skills/sample'), str(self.repo / 'codex-only/sample'))
+        before = snapshot(self.home)
+        preview = self.run_script('link.sh', '--dry-run')
+        self.assertEqual(snapshot(self.home), before)
+        self.assertEqual(self.commands(preview), self.commands(self.run_script('link.sh')))
+        second = next(f for f in self.run_folders() if f != first)
+        self.preview_then_undo(second)
+        self.run_script('link.sh', '--undo', str(first))
+        self.assertFalse((self.codex / 'sample').is_symlink())
+        self.assertFalse((self.claude / 'sample').is_symlink())
+
+    # Undo after a run that failed partway.
+
+    def test_failed_link_undo_keeps_old_target(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.symlink(self.codex / 'sample', '../../external/sample')
+        self.fake('ln', 'exit 73')
+        self.run_script('link.sh', expected=73)
+        hold = self.hold()
+        self.assertIn('../../external/sample', (hold / 'changes.log').read_text())
+        self.run_script('link.sh', '--undo', str(hold))
+        self.assertEqual(os.readlink(self.codex / 'sample'), '../../external/sample')
+
+    def test_failed_link_after_move_restores_original(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.codex, 'sample', 'original')
+        self.fake('ln', 'exit 73')
+        self.run_script('link.sh', expected=73)
+        self.assertFalse((self.codex / 'sample').exists())
+        self.run_script('link.sh', '--undo', str(self.hold()))
+        self.assertTrue((self.codex / 'sample/SKILL.md').read_text().endswith('original'))
+
+    def test_failed_move_undo_leaves_original(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.codex, 'sample', 'original')
+        self.fake('mv', 'exit 73')
+        self.run_script('link.sh', expected=73)
+        self.env['PATH'] = os.environ['PATH']
+        self.run_script('link.sh', '--undo', str(self.hold()))
+        self.assertTrue((self.codex / 'sample/SKILL.md').read_text().endswith('original'))
+
+    def test_failed_unlink_undo_leaves_original(self):
+        self.symlink(self.codex / 'deleted', self.repo / 'skills/deleted')
+        self.fake('rm', 'exit 73')
+        self.run_script('link.sh', expected=73)
+        self.run_script('link.sh', '--undo', str(self.hold()))
+        self.assertEqual(os.readlink(self.codex / 'deleted'), str(self.repo / 'skills/deleted'))
+
+    # Undo never overwrites newer changes.
+
+    def test_occupied_destination_is_skipped_then_retry_succeeds(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.skill(self.claude, 'sample', 'original')
+        self.run_script('link.sh')
+        hold = self.hold()
+        (self.claude / 'sample').unlink()
+        self.skill(self.claude, 'sample', 'newer')
+        self.assertIn('skip:', self.run_script('link.sh', '--undo', str(hold), '--dry-run'))
+        self.run_script('link.sh', '--undo', str(hold), expected=1)
+        self.assertTrue((self.claude / 'sample/SKILL.md').read_text().endswith('newer'))
+        self.assertTrue((hold / 'changes.log').exists())
+        shutil.rmtree(self.claude / 'sample')
+        self.run_script('link.sh', '--undo', str(hold))
+        self.assertTrue((self.claude / 'sample/SKILL.md').read_text().endswith('original'))
+
+    def test_second_undo_is_refused(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.run_script('link.sh')
+        hold = self.hold()
+        self.run_script('link.sh', '--undo', str(hold))
+        self.assertIn('already undone', self.run_script('link.sh', '--undo', str(hold), expected=1))
+
+    # Runs that change nothing leave nothing behind.
+
+    def test_empty_repo_makes_no_backup(self):
+        self.assertIn('Already up to date.', self.run_script('link.sh'))
+        self.assertFalse(self.backups.exists())
+
+    def test_repeat_run_creates_no_new_backup(self):
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.run_script('link.sh')
+        hold = self.hold()
+        self.assertIn('Already up to date.', self.run_script('link.sh'))
+        self.assertEqual(self.hold(), hold)
+
+    def test_failed_checks_make_no_backup(self):
+        self.skill(self.repo / 'skills', 'sample')
+        self.skill(self.repo / 'codex-only', 'sample')
+        self.run_script('link.sh', expected=1)
+        self.assertFalse(self.backups.exists())
 
 
 class DocsTests(unittest.TestCase):

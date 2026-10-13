@@ -8,7 +8,7 @@ This repo is the installation: [`scripts/link.sh`](../scripts/link.sh) links eac
 
 - `skills/`: shared by every agent, and what `npx skills add` installs
 - `codex-only/`, `claude-only/`: linked into one agent only (create when needed)
-- `scripts/link.sh`: creates and prunes the links; safe to re-run
+- `scripts/link.sh`: creates and prunes the links; safe to re-run, and each run can be undone
 - `scripts/import.sh`: backs up skills already installed in the agents' folders into this repo
 
 ## Back up skills you already have
@@ -39,7 +39,7 @@ scripts/link.sh --dry-run
 scripts/link.sh
 ```
 
-The dry run prints every change first. `link.sh` never deletes: an existing skill folder it replaces is moved to `~/skills-link-backup/<timestamp>-<pid>/`, and an old copy in `~/.codex/skills` is moved there too so Codex doesn't list the skill twice.
+The dry run prints every change first. `link.sh` never deletes: an existing skill folder it replaces is moved to `~/skills-link-backup/<timestamp>-<pid>/`, and an old copy in `~/.codex/skills` is moved there too so Codex doesn't list the skill twice. A run that changes something ends with the command to undo it.
 
 Check with `ls -l ~/.agents/skills ~/.claude/skills`: each skill should point into this repo. Then start a new session and type `/` (Claude Code) or `$` (Codex).
 
@@ -51,6 +51,22 @@ Don't move or delete this folder after linking; the links point into it. If you 
 - **Add a skill:** create `skills/<name>/SKILL.md`, then run `scripts/link.sh`.
 - **Remove a skill:** delete its folder, then run `scripts/link.sh` to remove its links.
 - **Get changes from another machine:** `git pull`. Run `scripts/link.sh` too if skills were added or removed.
+
+## Undo a link run
+
+Each run that changes something writes its run folder, `~/skills-link-backup/<timestamp>-<pid>/`, with a `changes.log` of every link it made, link it replaced (with the old target), and folder it moved aside. The last line of the run prints the exact command:
+
+```bash
+scripts/link.sh --undo ~/skills-link-backup/20261014-043257-60234 --dry-run
+scripts/link.sh --undo ~/skills-link-backup/20261014-043257-60234
+```
+
+Preview first: the dry run lists every change and every `skip:`. Undo puts back the moved folders and the old links, and removes the links it made.
+
+- **Undo the newest run first** when undoing several.
+- **It never overwrites newer changes.** If something has changed since the run (a new folder where the original goes, a link pointing elsewhere), that item is skipped with `skip:`, the run folder is kept, and the undo exits with an error. Move the newer thing aside and run the same command again.
+- **A run that failed partway can be undone too:** it records each change before making it.
+- **After a full undo,** `changes.log` becomes `changes.log.undone`, and the run folder can be deleted.
 
 ## Gotcha: the checked-out branch is live
 
