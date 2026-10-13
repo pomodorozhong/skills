@@ -27,4 +27,4 @@ npx skills add pomodorozhong/skills --skill commit --skill wrap-up -g -y
 
 ## Maintaining
 
-How I link and back up these skills: [docs/linking.md](docs/linking.md).
+How I back up and link these skills: [docs/maintaining.md](docs/maintaining.md).
