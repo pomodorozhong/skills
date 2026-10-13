@@ -54,11 +54,11 @@ Durable knowledge goes in `<docs>/`: architecture, decisions and their reasons, 
 
 ## 5. Make sure `AGENTS.md` points here
 
-If `AGENTS.md` at the repo root has no "Start of a session" section, add one: resolve any parked pending items first, then read `.agents/next-steps.md`, check the top issue is still open (`gh issue view`), propose it to the user, and end sessions with the `wrap-up` skill. Otherwise change nothing.
+If `AGENTS.md` at the repo root has no "Start of a session" section, add one: resolve any parked pending items first, then read `.agents/next-steps.md` from the most recently pushed branch, check the top issue is still open (`gh issue view`), propose it to the user, and end sessions with the `wrap-up` skill. If it has no rule for keeping the ranking current, add one (under branches/PRs, or a "Before pushing" section): before every push, update `.agents/next-steps.md` to read as it will once that branch merges, and commit it as `docs:` on that branch. Its "Start of a session" should read `.agents/next-steps.md` from the most recently pushed branch, not only the default branch, so another computer picks up the latest ranking. Otherwise change nothing.
 
 ## 6. Commit
 
-Commit only if files changed (`.agents/next-steps.md`, `<docs>/`, `AGENTS.md`). Use the `commit` skill, as a `docs:` commit on the current branch, so it lands with that branch's PR. If that branch's PR has already merged or closed (the `commit` skill checks), or the changes don't fit its theme, commit on a new `docs/<summary>` branch from the up-to-date default branch instead. If no branch was made this session, leave the changes uncommitted and say so; the next branch picks them up.
+Commit only if files changed (`.agents/next-steps.md`, `<docs>/`, `AGENTS.md`). Use the `commit` skill, as a `docs:` commit on the current branch, so it ships with that branch's next push and PR. Write `.agents/next-steps.md` as it will read once that PR merges. If the PR has already merged or closed, the `commit` skill moves the commit to a new branch from the default branch; it then ships with that branch's push. Never open a PR just for these docs. If no branch was made this session, leave the changes uncommitted and say so; the next branch picks them up.
 
 ## 7. Park what needs approval, then ask
 
