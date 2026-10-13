@@ -35,8 +35,29 @@ skills_in() {
   return 0
 }
 
+# Real paths, so folders reached through symlinks (or CODEX_HOME / CLAUDE_CONFIG_DIR) compare equal.
+resolved() { (cd -P "$1" 2>/dev/null && pwd -P) || true; }
+REPO_REAL="$(resolved "$REPO")"
+SKILLS_REAL="$(resolved "$REPO/skills")"
+
 # Check everything before changing anything.
 problems=""
+# An agent folder that is this repo's skills/ already reads the skills: linking into it would move
+# the repo's own skill folders aside. Skip it. Any other folder inside the repo is a mistake.
+LINK_CODEX=1 LINK_CLAUDE=1
+for agent in CODEX CLAUDE; do
+  eval "root=\"\$${agent}_DIR\""
+  real="$(resolved "$root")"
+  [ -n "$real" ] || continue
+  if [ "$real" = "$SKILLS_REAL" ]; then
+    echo "$root is this repo's skills/ folder; nothing to link there."
+    eval "LINK_$agent=0"
+  else
+    case "$real/" in
+      "$REPO_REAL"/*) problems="$problems\n  $root points into this repo ($real); point it to its own folder or to skills/" ;;
+    esac
+  fi
+done
 for n in $(skills_in skills); do
   # Claude Code reserves 'synced' (any capitalization) for skills synced from claude.ai.
   [ "$(echo "$n" | tr '[:upper:]' '[:lower:]')" = "synced" ] &&
@@ -51,7 +72,10 @@ fi
 PLAN=""
 plan() { PLAN="$PLAN$2/$1	$REPO/$3/$1
 "; }
-for n in $(skills_in skills); do plan "$n" "$CODEX_DIR" skills; plan "$n" "$CLAUDE_DIR" skills; done
+for n in $(skills_in skills); do
+  [ "$LINK_CODEX" = 0 ]  || plan "$n" "$CODEX_DIR" skills
+  [ "$LINK_CLAUDE" = 0 ] || plan "$n" "$CLAUDE_DIR" skills
+done
 
 move_aside() {  # $1 = path, $2 = label
   [ "$DRY" = 1 ] || mkdir -p "$BACKUP/$2"
@@ -61,6 +85,7 @@ move_aside() {  # $1 = path, $2 = label
 # Remove links into this repo that are not in the plan (deleted or moved skills).
 for root in "$CODEX_DIR" "$CLAUDE_DIR"; do
   [ -d "$root" ] || continue
+  [ "$(resolved "$root")" != "$SKILLS_REAL" ] || continue
   for l in "$root"/*; do
     [ -L "$l" ] || continue
     case "$(readlink "$l")" in
@@ -85,11 +110,14 @@ $PLAN
 EOF
 
 # Codex still reads the deprecated ~/.codex/skills and would list these skills twice.
-# Skip it when it is the same folder as ~/.agents/skills (a symlink, or CODEX_HOME=~/.agents):
-# its entries are the links just made.
-resolved() { (cd -P "$1" 2>/dev/null && pwd -P) || true; }
+# Skip it when it is the same folder as an agent folder or skills/ (a symlink, or CODEX_HOME=~/.agents):
+# its entries are the links just made, or the skills themselves.
 legacy_real="$(resolved "$LEGACY_CODEX_DIR")"
-[ -n "$legacy_real" ] && [ "$legacy_real" = "$(resolved "$CODEX_DIR")" ] && LEGACY_CODEX_DIR=""
+for other in "$CODEX_DIR" "$CLAUDE_DIR" "$REPO/skills"; do
+  if [ -n "$legacy_real" ] && [ "$legacy_real" = "$(resolved "$other")" ]; then
+    LEGACY_CODEX_DIR=""
+  fi
+done
 for n in $(skills_in skills); do
   [ -n "$LEGACY_CODEX_DIR" ] || break
   if [ -e "$LEGACY_CODEX_DIR/$n" ] || [ -L "$LEGACY_CODEX_DIR/$n" ]; then
