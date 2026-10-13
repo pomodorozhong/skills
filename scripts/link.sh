@@ -134,13 +134,9 @@ skills_in() {
 # Check everything before changing anything.
 problems=""
 for n in $(skills_in skills); do
-  [ -d "$REPO/codex-only/$n" ] && problems="$problems\n  '$n' is in skills/ and codex-only/"
-  [ -d "$REPO/claude-only/$n" ] && problems="$problems\n  '$n' is in skills/ and claude-only/"
-done
-for n in $(skills_in skills) $(skills_in claude-only); do
   # Claude Code reserves 'synced' (any capitalization) for skills synced from claude.ai.
   [ "$(echo "$n" | tr '[:upper:]' '[:lower:]')" = "synced" ] &&
-    problems="$problems\n  '$n' is reserved by Claude Code; rename it or move it to codex-only/"
+    problems="$problems\n  '$n' is reserved by Claude Code; rename it"
 done
 if [ -n "$problems" ]; then
   printf "Nothing changed. Fix these first:$problems\n" >&2
@@ -151,9 +147,7 @@ fi
 PLAN=""
 plan() { PLAN="$PLAN$2/$1	$REPO/$3/$1
 "; }
-for n in $(skills_in skills);      do plan "$n" "$CODEX_DIR" skills; plan "$n" "$CLAUDE_DIR" skills; done
-for n in $(skills_in codex-only);  do plan "$n" "$CODEX_DIR" codex-only; done
-for n in $(skills_in claude-only); do plan "$n" "$CLAUDE_DIR" claude-only; done
+for n in $(skills_in skills); do plan "$n" "$CODEX_DIR" skills; plan "$n" "$CLAUDE_DIR" skills; done
 planned() { printf '%s' "$PLAN" | cut -f1 | grep -qxF "$1"; }
 
 # ---------------------------------------------------------------- apply
@@ -211,7 +205,7 @@ EOF
 resolved() { (cd -P "$1" 2>/dev/null && pwd -P) || true; }
 legacy_real="$(resolved "$LEGACY_CODEX_DIR")"
 [ -n "$legacy_real" ] && [ "$legacy_real" = "$(resolved "$CODEX_DIR")" ] && LEGACY_CODEX_DIR=""
-for n in $(skills_in skills) $(skills_in codex-only); do
+for n in $(skills_in skills); do
   [ -n "$LEGACY_CODEX_DIR" ] || break
   if [ -e "$LEGACY_CODEX_DIR/$n" ] || [ -L "$LEGACY_CODEX_DIR/$n" ]; then
     move_aside "$LEGACY_CODEX_DIR/$n" codex-legacy

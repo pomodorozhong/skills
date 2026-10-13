@@ -72,15 +72,13 @@ class Fixture(unittest.TestCase):
 
 
 class ImportTests(Fixture):
-    def test_imports_into_shared_and_agent_folders(self):
+    def test_imports_identical_copies_into_skills(self):
         self.skill(self.codex, 'codex-first')
         self.skill(self.legacy, 'legacy-only')
         self.skill(self.claude, 'claude-first')
         shared = self.skill(self.codex, 'shared')
         self.skill(self.legacy, 'shared')
         self.skill(self.claude, 'shared')
-        self.skill(self.codex, 'different', 'codex version')
-        self.skill(self.claude, 'different', 'claude version')
         self.skill(self.legacy, '.system')
         self.skill(self.claude, 'synced')
         helper = shared / 'helper.sh'
@@ -93,69 +91,55 @@ class ImportTests(Fixture):
         outside = self.skill(self.root / 'external', 'linked-source')
         (self.codex / 'linked-source').symlink_to(outside)
 
-        out = self.run_script('import.sh')
+        self.run_script('import.sh')
 
         for name in ['codex-first', 'legacy-only', 'claude-first', 'shared', 'linked-source']:
             self.assertTrue((self.repo / 'skills' / name / 'SKILL.md').is_file(), name)
         self.assertFalse((self.repo / 'skills/linked-source').is_symlink())
         self.assertTrue((self.repo / 'skills/shared/helper.sh').stat().st_mode & 0o111)
-        self.assertTrue((self.repo / 'codex-only/different/SKILL.md').read_text().endswith('codex version'))
-        self.assertTrue((self.repo / 'claude-only/different/SKILL.md').read_text().endswith('claude version'))
-        self.assertIn('DIFFERENT in each agent', out)
-        for excluded in ['skills/.system', 'skills/synced', '.import', 'scripts/skills']:
+        for excluded in ['skills/.system', 'skills/synced', '.import', 'scripts/skills', 'codex-only', 'claude-only']:
             self.assertFalse((self.repo / excluded).exists(), excluded)
 
-    def test_rerun_never_overwrites_repo(self):
-        self.skill(self.codex, 'codex-first')
-        self.skill(self.codex, 'different', 'codex version')
-        self.skill(self.claude, 'different', 'claude version')
-        self.run_script('import.sh')
-        imported = snapshot(self.repo)
-        (self.codex / 'codex-first/SKILL.md').write_text('changed installed source')
-        self.assertIn('not overwritten', self.run_script('import.sh'))
-        self.assertEqual(snapshot(self.repo), imported)
-
-    def test_name_in_any_repo_folder_is_not_imported_again(self):
-        codex_only = self.skill(self.repo / 'codex-only', 'mine')
-        self.skill(self.repo / 'claude-only', 'theirs')
-        self.codex.mkdir(parents=True)
-        (self.codex / 'mine').symlink_to(codex_only)  # as link.sh leaves it
-        self.skill(self.claude, 'theirs', 'installed copy')
+    def test_differing_copies_are_skipped_and_listed(self):
+        cases = [('codex-vs-claude', self.codex, self.claude), ('codex-folders', self.codex, self.legacy),
+                 ('legacy-vs-claude', self.legacy, self.claude)]
+        for name, first, second in cases:
+            self.skill(first, name, 'one version')
+            self.skill(second, name, 'another version')
+        self.skill(self.codex, 'other')
         out = self.run_script('import.sh')
-        self.assertIn('not overwritten: codex-only/mine', out)
-        self.assertIn('not overwritten: claude-only/theirs', out)
-        self.assertFalse((self.repo / 'skills/mine').exists())
-        self.assertFalse((self.repo / 'skills/theirs').exists())
-        self.run_script('link.sh')
+        self.assertIn('Not imported, installed copies differ: codex-folders codex-vs-claude legacy-vs-claude', out)
+        for name, _, _ in cases:
+            self.assertFalse((self.repo / 'skills' / name).exists(), name)
+        self.assertTrue((self.repo / 'skills/other/SKILL.md').is_file())
 
-    def test_executable_bit_difference_is_not_shared(self):
+    def test_executable_bit_difference_is_a_difference(self):
         for folder, mode in [(self.codex, 0o644), (self.claude, 0o755)]:
             helper = self.skill(folder, 'tool') / 'helper.sh'
             helper.write_text('#!/bin/sh\nexit 0\n')
             helper.chmod(mode)
-        self.assertIn('DIFFERENT in each agent, review: tool', self.run_script('import.sh'))
+        self.assertIn('copies differ: tool', self.run_script('import.sh'))
         self.assertFalse((self.repo / 'skills/tool').exists())
-        self.assertTrue((self.repo / 'claude-only/tool/helper.sh').stat().st_mode & 0o100)
 
-    def test_executable_bit_difference_between_codex_folders_stops(self):
-        for folder, mode in [(self.codex, 0o644), (self.legacy, 0o755)]:
-            helper = self.skill(folder, 'tool') / 'helper.sh'
-            helper.write_text('#!/bin/sh\nexit 0\n')
-            helper.chmod(mode)
-        self.assertIn('Nothing imported', self.run_script('import.sh', expected=1))
+    def test_rerun_never_overwrites_repo(self):
+        self.skill(self.codex, 'codex-first')
+        self.run_script('import.sh')
+        imported = snapshot(self.repo)
+        (self.codex / 'codex-first/SKILL.md').write_text('changed installed source')
+        self.assertIn('not overwritten: skills/codex-first', self.run_script('import.sh'))
+        self.assertEqual(snapshot(self.repo), imported)
 
-    def test_conflicting_codex_versions_stop_before_import(self):
-        self.skill(self.codex, 'conflict', 'new')
-        self.skill(self.legacy, 'conflict', 'old')
-        self.skill(self.codex, 'other')
-        before = snapshot(self.root)
-        self.assertIn('Nothing imported', self.run_script('import.sh', expected=1))
-        self.assertEqual(snapshot(self.root), before)
+    def test_linked_skills_are_not_imported_again(self):
+        mine = self.skill(self.repo / 'skills', 'mine')
+        self.run_script('link.sh')
+        before = snapshot(self.repo)
+        self.assertIn('not overwritten: skills/mine', self.run_script('import.sh'))
+        self.assertEqual(snapshot(self.repo), before)
+        self.assertLinks(self.claude / 'mine', mine)
 
     def test_absent_source_folders(self):
         self.run_script('import.sh')
-        for name in ['skills', 'codex-only', 'claude-only']:
-            self.assertTrue((self.repo / name).is_dir(), name)
+        self.assertTrue((self.repo / 'skills').is_dir())
 
 
 class LinkTests(Fixture):
@@ -169,8 +153,7 @@ class LinkTests(Fixture):
 
     def test_links_backs_up_and_is_idempotent(self):
         shared = self.skill(self.repo / 'skills', 'shared')
-        codex = self.skill(self.repo / 'codex-only', 'codex-skill')
-        claude = self.skill(self.repo / 'claude-only', 'claude-skill')
+        other = self.skill(self.repo / 'skills', 'other')
         self.skill(self.codex, 'shared', 'old codex')
         self.skill(self.claude, 'shared', 'old claude')
         self.skill(self.legacy, 'shared', 'legacy')
@@ -178,7 +161,8 @@ class LinkTests(Fixture):
         synced = self.skill(self.claude, 'synced')
         unrelated = self.skill(self.codex, 'unrelated')
         old_target = self.skill(self.root / 'elsewhere', 'old-target')
-        (self.codex / 'codex-skill').symlink_to(old_target)
+        self.codex.mkdir(parents=True, exist_ok=True)
+        (self.codex / 'other').symlink_to(old_target)
 
         before = snapshot(self.root)
         self.assertIn('Dry run: nothing changed.', self.run_script('link.sh', '--dry-run'))
@@ -187,12 +171,9 @@ class LinkTests(Fixture):
         out = self.run_script('link.sh')
         self.assertIn('Linked skills from ' + str(self.repo), out)
         self.assertIn('was -> ' + str(old_target), out)
-        self.assertLinks(self.codex / 'shared', shared)
-        self.assertLinks(self.claude / 'shared', shared)
-        self.assertLinks(self.codex / 'codex-skill', codex)
-        self.assertLinks(self.claude / 'claude-skill', claude)
-        self.assertFalse((self.claude / 'codex-skill').exists())
-        self.assertFalse((self.codex / 'claude-skill').exists())
+        for folder in [self.codex, self.claude]:
+            self.assertLinks(folder / 'shared', shared)
+            self.assertLinks(folder / 'other', other)
         self.assertFalse((self.legacy / 'shared').exists())
         self.assertTrue((self.legacy / '.system/SKILL.md').exists())
         self.assertTrue(synced.is_dir() and unrelated.is_dir())
@@ -221,35 +202,27 @@ class LinkTests(Fixture):
         shutil.move(str(backup / 'codex/example'), str(self.codex / 'example'))
         self.assertTrue((self.codex / 'example/SKILL.md').read_text().endswith('original current'))
 
-    def test_moved_and_deleted_skills_are_unlinked(self):
-        shared = self.skill(self.repo / 'skills', 'shared')
-        claude = self.skill(self.repo / 'claude-only', 'claude-skill')
+    def test_deleted_skills_and_stale_links_are_unlinked(self):
+        self.skill(self.repo / 'skills', 'kept')
+        deleted = self.skill(self.repo / 'skills', 'deleted')
         self.run_script('link.sh')
-
-        (self.repo / 'codex-only').mkdir()
-        shared.rename(self.repo / 'codex-only/shared')
+        # A link into the repo that no skill plans, such as one left from an old codex-only/ folder.
+        (self.claude / 'stale').symlink_to(self.repo / 'codex-only/stale')
+        shutil.rmtree(deleted)
         preview = self.run_script('link.sh', '--dry-run')
         real = self.run_script('link.sh')
         changes = lambda text: [line for line in text.splitlines() if line.startswith(('+ ', 'replacing link'))]
         self.assertEqual(changes(preview), changes(real))
-        self.assertLinks(self.codex / 'shared', self.repo / 'codex-only/shared')
-        self.assertFalse((self.claude / 'shared').is_symlink())
+        for folder in [self.codex, self.claude]:
+            self.assertFalse((folder / 'deleted').is_symlink())
+            self.assertTrue((folder / 'kept').is_symlink())
+        self.assertFalse((self.claude / 'stale').is_symlink())
 
-        shutil.rmtree(claude)
-        self.run_script('link.sh')
-        self.assertFalse((self.claude / 'claude-skill').is_symlink())
-
-    def test_duplicate_and_reserved_names_stop_before_changes(self):
-        for folder, name in [('codex-only', 'same'), ('claude-only', 'SyNcEd')]:
-            with self.subTest(name=name):
-                shutil.rmtree(self.repo / 'skills', ignore_errors=True)
-                self.skill(self.repo / folder, name)
-                if folder == 'codex-only':
-                    self.skill(self.repo / 'skills', name)
-                before = snapshot(self.home)
-                self.assertIn('Nothing changed', self.run_script('link.sh', expected=1))
-                self.assertEqual(snapshot(self.home), before)
-                shutil.rmtree(self.repo / folder)
+    def test_reserved_name_stops_before_changes(self):
+        self.skill(self.repo / 'skills', 'SyNcEd')
+        before = snapshot(self.home)
+        self.assertIn('Nothing changed', self.run_script('link.sh', expected=1))
+        self.assertEqual(snapshot(self.home), before)
 
     def test_missing_and_empty_folders(self):
         self.run_script('link.sh')
@@ -286,7 +259,7 @@ class LinkTests(Fixture):
                 self.assertEqual(list(self.home.glob('skills-link-backup/*/codex-legacy')), [])
 
     def test_same_second_runs_keep_separate_backups(self):
-        self.skill(self.repo / 'codex-only', 'example')
+        self.skill(self.repo / 'skills', 'example')
         fake_bin = self.root / 'bin'
         fake_bin.mkdir()
         (fake_bin / 'date').write_text('#!/bin/sh\nprintf 20261013-000000\n')
@@ -362,7 +335,7 @@ class UndoTests(Fixture):
         self.assertEqual(snapshot(self.home), before)
 
     def test_unwritable_backup_preserves_real_folder(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.skill(self.codex, 'sample', 'original')
         self.readonly_backups()
         before = snapshot(self.home)
@@ -370,7 +343,7 @@ class UndoTests(Fixture):
         self.assertEqual(snapshot(self.home), before)
 
     def test_log_write_failure_preserves_existing_link(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.symlink(self.codex / 'sample', '../../external/sample')
         self.fake('mkdir', '/bin/mkdir "$@" || exit\nfor p in "$@"; do\n'
                            '  case "$p" in */skills-link-backup/*) : > "$p/changes.log"; '
@@ -410,7 +383,7 @@ class UndoTests(Fixture):
 
     def test_legacy_folder_and_link_undo(self):
         self.skill(self.repo / 'skills', 'sample')
-        self.skill(self.repo / 'codex-only', 'second')
+        self.skill(self.repo / 'skills', 'second')
         self.skill(self.legacy, 'sample', 'legacy')
         self.symlink(self.legacy / 'second', '../../external/second')
         self.run_script('link.sh')
@@ -418,18 +391,20 @@ class UndoTests(Fixture):
         self.assertTrue((self.legacy / 'sample/SKILL.md').read_text().endswith('legacy'))
         self.assertEqual(os.readlink(self.legacy / 'second'), '../../external/second')
 
-    def test_scope_move_and_undo_newest_first(self):
-        self.skill(self.repo / 'skills', 'sample')
+    def test_pruned_links_and_undo_newest_first(self):
+        sample = self.skill(self.repo / 'skills', 'sample')
         self.run_script('link.sh')
         first = self.hold()
-        (self.repo / 'codex-only').mkdir()
-        shutil.move(str(self.repo / 'skills/sample'), str(self.repo / 'codex-only/sample'))
+        shutil.rmtree(sample)
         before = snapshot(self.home)
         preview = self.run_script('link.sh', '--dry-run')
         self.assertEqual(snapshot(self.home), before)
         self.assertEqual(self.commands(preview), self.commands(self.run_script('link.sh')))
+        self.assertFalse((self.codex / 'sample').is_symlink())
         second = next(f for f in self.run_folders() if f != first)
         self.preview_then_undo(second)
+        self.assertTrue((self.codex / 'sample').is_symlink())
+        self.assertTrue((self.claude / 'sample').is_symlink())
         self.run_script('link.sh', '--undo', str(first))
         self.assertFalse((self.codex / 'sample').is_symlink())
         self.assertFalse((self.claude / 'sample').is_symlink())
@@ -437,7 +412,7 @@ class UndoTests(Fixture):
     # Undo after a run that failed partway.
 
     def test_failed_link_undo_keeps_old_target(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.symlink(self.codex / 'sample', '../../external/sample')
         self.fake('ln', 'exit 73')
         self.run_script('link.sh', expected=73)
@@ -447,7 +422,7 @@ class UndoTests(Fixture):
         self.assertEqual(os.readlink(self.codex / 'sample'), '../../external/sample')
 
     def test_failed_link_after_move_restores_original(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.skill(self.codex, 'sample', 'original')
         self.fake('ln', 'exit 73')
         self.run_script('link.sh', expected=73)
@@ -456,7 +431,7 @@ class UndoTests(Fixture):
         self.assertTrue((self.codex / 'sample/SKILL.md').read_text().endswith('original'))
 
     def test_failed_move_undo_leaves_original(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.skill(self.codex, 'sample', 'original')
         self.fake('mv', 'exit 73')
         self.run_script('link.sh', expected=73)
@@ -502,15 +477,14 @@ class UndoTests(Fixture):
         self.assertFalse(self.backups.exists())
 
     def test_repeat_run_creates_no_new_backup(self):
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'sample')
         self.run_script('link.sh')
         hold = self.hold()
         self.assertIn('Already up to date.', self.run_script('link.sh'))
         self.assertEqual(self.hold(), hold)
 
     def test_failed_checks_make_no_backup(self):
-        self.skill(self.repo / 'skills', 'sample')
-        self.skill(self.repo / 'codex-only', 'sample')
+        self.skill(self.repo / 'skills', 'synced')
         self.run_script('link.sh', expected=1)
         self.assertFalse(self.backups.exists())
 
