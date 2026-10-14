@@ -76,6 +76,7 @@ Before writing the final wrap-up reply, read and fill in [the reply template](as
 - Use a past-tense verb and a task type in Title Case for each bold label, such as `Filed Issue`, `Updated PR`, `Posted Handoff Notes`, or `Committed Changes`. Repeat task bullets as needed.
 - Make every issue and PR mention a Markdown link, including repeated mentions and items under `Next`. Link directly to the comment when reporting a handoff note.
 - Keep task details concise and include relevant commit hashes and parked-item status. Report decisions or unresolved questions as task bullets, such as `Recorded Decision` or `Raised Clarification`, when relevant; omit empty categories.
+- Give commits their own `## Commits` section between `## In this session we...` and `## Next`. List exactly one commit per Markdown bullet/line, with its short hash, subject, and concise purpose. Never combine multiple commits into one line. If no commits were made, use one line: `No commits were made.`
 - List the next 2–4 concrete tasks in priority order, with one line per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
 
 ## Resolving pending items

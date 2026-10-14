@@ -3,6 +3,10 @@
 - **[Past-Tense Verb + Task Type]**: [Task detail with links for every issue and PR mention.]
 - **[Past-Tense Verb + Task Type]**: [Task detail.]
 
+## Commits
+
+- `[short hash]` — `[commit subject]` — [concise purpose.]
+
 ## Next
 
 - [Next task in priority order, linking any issue or PR mention.]
