@@ -66,8 +66,17 @@ Everything else is saved by now, so the user can leave at any point from here wi
 
 1. Write each item that needs the user's approval (issue drafts in full, pushes, draft PRs, milestones to close) to `.agents/pending.md`, under a `# Pending (from YYYY-MM-DD)` heading.
 2. Commit it on its own as `chore: park pending items`, with no other file in that commit. No other commit may touch `pending.md`. If no branch was made this session, create `chore/pending-YYYY-MM-DD` from the default branch for it.
-3. Report in a few lines: the issues commented on, the commits made, the top of `.agents/next-steps.md` (especially any `needs-decision` issue), and the parked items.
+3. Report using the final reply template below: the issues commented on, the commits made, the top of `.agents/next-steps.md` (especially any `needs-decision` issue), and the parked items.
 4. Ask about the parked items, unless the user said they have to go. Whatever they answer, resolve it as below.
+
+## Final reply template
+
+Before writing the final wrap-up reply, read and fill in [the reply template](assets/wrap-up-reply.md). This plain Markdown asset is shared by Codex and Claude Code.
+
+- Use a past-tense verb and a task type in Title Case for each bold label, such as `Filed Issue`, `Updated PR`, `Posted Handoff Notes`, or `Committed Changes`. Repeat task bullets as needed.
+- Make every issue and PR mention a Markdown link, including repeated mentions and items under `Next`. Link directly to the comment when reporting a handoff note.
+- Keep task details concise and include relevant commit hashes and parked-item status. Report decisions or unresolved questions as task bullets, such as `Recorded Decision` or `Raised Clarification`, when relevant; omit empty categories.
+- List the next 2–4 concrete tasks in priority order, with one line per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
 
 ## Resolving pending items
 
