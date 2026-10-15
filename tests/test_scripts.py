@@ -91,7 +91,7 @@ class ImportTests(Fixture):
         outside = self.skill(self.root / 'external', 'linked-source')
         (self.codex / 'linked-source').symlink_to(outside)
 
-        self.run_script('import.sh')
+        self.run_script('import.sh', '--all')
 
         for name in ['codex-first', 'legacy-only', 'claude-first', 'shared', 'linked-source']:
             self.assertTrue((self.repo / 'skills' / name / 'SKILL.md').is_file(), name)
@@ -107,7 +107,7 @@ class ImportTests(Fixture):
             self.skill(first, name, 'one version')
             self.skill(second, name, 'another version')
         self.skill(self.codex, 'other')
-        out = self.run_script('import.sh')
+        out = self.run_script('import.sh', '--all')
         self.assertIn('Not imported, installed copies differ: codex-folders codex-vs-claude legacy-vs-claude', out)
         for name, _, _ in cases:
             self.assertFalse((self.repo / 'skills' / name).exists(), name)
@@ -118,27 +118,27 @@ class ImportTests(Fixture):
             helper = self.skill(folder, 'tool') / 'helper.sh'
             helper.write_text('#!/bin/sh\nexit 0\n')
             helper.chmod(mode)
-        self.assertIn('copies differ: tool', self.run_script('import.sh'))
+        self.assertIn('copies differ: tool', self.run_script('import.sh', '--all'))
         self.assertFalse((self.repo / 'skills/tool').exists())
 
     def test_rerun_never_overwrites_repo(self):
         self.skill(self.codex, 'codex-first')
-        self.run_script('import.sh')
+        self.run_script('import.sh', '--all')
         imported = snapshot(self.repo)
         (self.codex / 'codex-first/SKILL.md').write_text('changed installed source')
-        self.assertIn('not overwritten: skills/codex-first', self.run_script('import.sh'))
+        self.assertIn('not overwritten: skills/codex-first', self.run_script('import.sh', '--all'))
         self.assertEqual(snapshot(self.repo), imported)
 
     def test_linked_skills_are_not_imported_again(self):
         mine = self.skill(self.repo / 'skills', 'mine')
         self.run_script('link.sh')
         before = snapshot(self.repo)
-        self.assertIn('not overwritten: skills/mine', self.run_script('import.sh'))
+        self.assertIn('not overwritten: skills/mine', self.run_script('import.sh', '--all'))
         self.assertEqual(snapshot(self.repo), before)
         self.assertLinks(self.claude / 'mine', mine)
 
     def test_absent_source_folders(self):
-        self.run_script('import.sh')
+        self.run_script('import.sh', '--all')
         self.assertTrue((self.repo / 'skills').is_dir())
 
 
