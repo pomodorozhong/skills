@@ -54,7 +54,7 @@ Check `git diff --cached --stat` before each commit.
 ```
 <type>(<scope>): <summary>
 
-<body: what changed and why, wrapped at ~72 columns>
+<body: what changed and why>
 
 <trailers>
 ```
@@ -63,7 +63,6 @@ Check `git diff --cached --stat` before each commit.
 - Scope: optional; the area touched, following the existing history (`git log --oneline -20`).
 - Summary: imperative mood, lowercase, no trailing period, at most ~72 characters.
 - Body: explain the reason and the user-visible effect, not a file list. Reference issues as `#N` where relevant. Optional for trivial changes.
-- End with the attribution line the session asks for.
 
 ## 4. Verify
 
