@@ -66,11 +66,13 @@ git -C ~/repo/skills status -sb
 For skills installed before this repository existed, copy them from the agents' folders into `skills/`:
 
 ```bash
-scripts/import.sh
+scripts/import.sh --skill file-issue product-brief sankey-diagrams
 git status --short
 ```
 
-The script reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, skipping the folders the tools manage (`.system` and `synced`). It copies rather than moves, and never overwrites a skill already in the repository.
+Pass one or more names after `--skill`; you can also repeat the flag. The script reads `~/.agents/skills`, `~/.codex/skills`, and `~/.claude/skills`, skipping the folders the tools manage (`.system` and `synced`). It copies rather than moves, and never overwrites a skill already in the repository. Requested names that are missing from those folders are reported as an error.
+
+Use `scripts/import.sh --all` to import every eligible skill, which is the previous default behavior. The script now requires either `--skill` or `--all`; running it without arguments prints an error and usage.
 
 Each skill has one shared version, so a name is imported only when all its installed copies are identical, executable permissions included. Names listed under `Not imported, installed copies differ:` need a decision: keep one version (merging in anything you want from the others), move the other copies out of the agents' folders, and run `import.sh` again. If they're different skills that share a name, rename one first.
 
