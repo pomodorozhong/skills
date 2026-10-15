@@ -21,21 +21,12 @@ If the changes do one thing, make one commit with only the files that belong to 
 - Order commits so each one builds and passes tests on its own. Backend or library pieces usually go before the UI that uses them, and docs that describe the result go last.
 - Split a file across commits when its hunks belong to different units. Do not split so finely that a commit is broken or meaningless; when code is too entangled to separate cleanly, keep it in one commit and say why in the body.
 
-Partial staging without interactive `git add -p`:
-
-- Hunks: take `git diff -- <file>`, keep the wanted hunks, and apply them with `git apply --cached --recount -`.
-- Lines inside one hunk: write the intermediate file version to the scratchpad, then `git update-index --cacheinfo 100644,$(git hash-object -w <tmp-file>),<path>`.
-
-Check `git diff --cached --stat` before each commit.
-
 ## 3. Write Conventional Commit messages
 
 ```
 <type>(<scope>): <summary>
 
 <body: what changed and why>
-
-<trailers>
 ```
 
 - Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`. Use `!` after the scope plus a `BREAKING CHANGE:` footer for breaking changes.
@@ -43,9 +34,12 @@ Check `git diff --cached --stat` before each commit.
 - Summary: imperative mood, lowercase, no trailing period, at most ~72 characters.
 - Body: explain the reason and the user-visible effect, not a file list. Reference issues as `#N` where relevant. Optional for trivial changes.
 
-## 4. Verification
+## 4. Verify
 
-Before committing, run checks relevant to the changes. For split commits, verify each independently using checks appropriate to its contents. Report failures and skipped checks.
+Run the project's checks if it documents them (in its README, `AGENTS.md`, or `CLAUDE.md`). Skip suites the change cannot affect and say so.
+
+- One commit: run the checks on the working tree before committing.
+- Several commits: check each one on its own in a temporary detached worktree in the scratchpad, then remove the worktree. Reuse installed dependency folders only when they match the tested commit's dependency manifests and lockfiles; otherwise install that commit's dependencies. If a commit fails on its own, fix the split (only unpushed commits may be rewritten) and re-check.
 
 ## 5. Push and cleanup
 
