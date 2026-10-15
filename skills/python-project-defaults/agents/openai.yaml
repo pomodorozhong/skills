@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Project Defaults"
+  short_description: "Use uv-first tooling with a Homebrew fallback"
+  default_prompt: "Use $python-project-defaults to set up and manage this Python project with uv-first tooling."

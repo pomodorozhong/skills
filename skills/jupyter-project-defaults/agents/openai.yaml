@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jupyter Project Defaults"
+  short_description: "Build GitHub-readable educational notebooks"
+  default_prompt: "Use $jupyter-project-defaults to create a clear, GitHub-readable educational notebook."
