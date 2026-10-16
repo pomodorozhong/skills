@@ -10,7 +10,7 @@
 ## Handoff
 
 - **Resume Branch**: `[branch]` [and linked PR, if present].
-- **Saved State**: [Which work is committed and pushed; whether another computer can retrieve it.]
+- **Saved State**: [Which work and `HANDOFF.md` changes are committed and pushed; whether another computer can retrieve them.]
 - **Uncommitted Work**: [Relevant files and what remains to checkpoint; omit if none.]
 - **Pending Approvals**: [Stable IDs, proposed actions, and what each blocks; omit if none.]
 
