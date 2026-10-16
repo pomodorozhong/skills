@@ -74,15 +74,15 @@ When the user accepts a branch's work and its PR is ready to merge, run only thi
 - If unfinished source changes remain uncommitted, note the files in the branch subsection and report them. Do not imply that committing `HANDOFF.md` also saved them.
 - Push only within the user's existing authorization; otherwise record the push request in the branch subsection. Creating a PR needs its own authorization. Pushing also publishes the branch's earlier unpushed commits.
 - Before reporting, inspect the final working tree and confirm which commits were pushed. Say plainly when another computer cannot retrieve the handoff or the work yet.
-- Use the reply template below. List requests still awaiting approval; if the user answers afterwards, resolve them as in step 3 and save the result normally.
+- Use the reply template below; it lists requests still awaiting approval. If the user answers afterwards, resolve them as in step 3 and save the result normally.
 
 ## Final reply template
 
 Before writing the final reply, read and fill in [the reply template](assets/handoff-reply.md). This plain Markdown asset is shared by Codex and Claude Code.
 
-- For session task bullets, use a past-tense verb and a task type in Title Case for each bold label, such as `Filed Issue`, `Updated PR`, `Posted Handoff Notes`, or `Committed Changes`. Repeat task bullets as needed.
-- Make every issue and PR mention a Markdown link, including repeated mentions and items under `Next`. Link directly to the comment when reporting a handoff note.
-- Keep task details concise and include relevant commit hashes and pending-request status. Report decisions or unresolved questions as task bullets, such as `Recorded Decision` or `Raised Clarification`, when relevant; omit empty categories.
-- Give commits their own `## Commits` section between `## In this session we...` and `## Next`. List exactly one commit per Markdown bullet/line, with its short hash, subject, and concise purpose. Never combine multiple commits into one line. If no commits were made, use one line: `No commits were made.`
-- Include `## Handoff` with the resume branch, saved-state and push status, any uncommitted work, and pending IDs with their scope and blockers. Omit empty optional entries.
-- List the next 2–4 concrete tasks in priority order, with one line per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
+- **Verdict first:** open with one bold line saying whether it is safe to stop: "Safe to stop: everything is pushed." or "Not safe yet:" followed by what exists only on this computer (unpushed commits, uncommitted files). Then name the branch and PR to resume from. Do not restate the branch's `HANDOFF.md` subsection; it is the record.
+- **Needs you:** each request still awaiting approval, with its ID, proposed action, and what it blocks, plus any question the user has not answered. Omit the section when nothing needs the user.
+- **Done:** one plain past-tense bullet per change, decision, or filed item. Link directly to the comment when reporting a handoff note.
+- **Commits:** exactly one commit per bullet, with its short hash and subject; never combine commits on one line. Omit the section when no commits were made.
+- **Next:** the next 2–4 concrete tasks in priority order, one per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
+- Make every issue and PR mention a Markdown link, including repeated mentions. Scale to the session: a small session may be just the verdict line and `Next`.
