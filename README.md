@@ -7,7 +7,7 @@ Agent skills I use with Claude Code and Codex. Each one is a folder under `skill
 | Skill | What it does | Try it |
 | --- | --- | --- |
 | `commit` | Commits as atomic Conventional Commits, never on `main`/`master` or a merged branch | "Commit these changes" in a repo with a diff |
-| `handoff` | Keeps a root `HANDOFF.md` current so any session, worktree, or computer can resume: per-branch state, ranked work, pending approvals, issue handoffs, and verified Git checkpoints | "Let's wrap up" at the end of a session |
+| `handoff` | Keeps a root `HANDOFF.md` current so any session, worktree, or computer can resume: per-branch state, ranked work, pending approvals, issue handoffs, and verified Git checkpoints. Also opens PRs after you approve a plan and then the finished branch | "Let's wrap up" at the end of a session, or "Open a PR for #12" |
 
 ## Install
 
