@@ -33,6 +33,7 @@ If the changes do one thing, make one commit with only the files that belong to 
 - Scope: optional; the area touched, following the existing history (`git log --oneline -20`).
 - Summary: imperative mood, lowercase, no trailing period, at most ~72 characters.
 - Body: explain the reason and the user-visible effect, not a file list. Reference issues as `#N` where relevant. Optional for trivial changes.
+- Line breaks: write each body paragraph as one line and separate paragraphs with a blank line. Do not hard-wrap at 72 columns; viewers wrap text themselves, and hard breaks show as ragged mid-sentence breaks. List items and trailers stay one per line.
 
 ## 4. Verify
 
