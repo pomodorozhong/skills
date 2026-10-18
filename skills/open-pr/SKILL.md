@@ -7,15 +7,13 @@ description: Turn a requested change into a GitHub PR with two approvals, a deta
 
 Turn a requested change into a GitHub PR with two approvals: the user approves a detailed plan before any work, then approves the finished branch before anything is pushed. Approving the plan never authorizes a push.
 
-Ask for each approval in chat and wait for a reply; silence is not approval. If the session ends before the user answers, keep the open request in the reply; in a handoff repo, it also goes in `HANDOFF.md` like any other pending request.
+Ask for each approval in chat and wait for a reply; silence is not approval. If the session ends before the user answers, keep the open request in the reply.
 
-**Handoff repo:** the root `AGENTS.md` contains the `handoff:start` and `handoff:end` markers. Steps that mention `HANDOFF.md` apply only there; other repos need no `HANDOFF.md`.
-
-**Already approved:** if the user already approved this exact branch tip and body (for example, through a pending request in `HANDOFF.md`), go straight to step 5.
+**Already approved:** if the user already approved this exact branch tip and body (for example, in a recorded pending request), go straight to step 5.
 
 ## 1. Gather context
 
-- Read the branch's linked issue (`gh issue develop --list <N>`), its `HANDOFF.md` subsection in a handoff repo, and the working tree, commits, and full diff against the default branch.
+- Read the branch's linked issue (`gh issue develop --list <N>`) and the working tree, commits, and full diff against the default branch.
 - Fetch the default branch and report how far the branch is behind and ahead (`git rev-list --left-right --count origin/<default>...HEAD`).
 - Check whether this branch already has a PR, including merged or closed ones. If an open PR covers the same work, show it and ask before making another.
 - List the issues that merging will close: those linked to the branch (`gh issue develop --list <N>`) and those named with `Closes #N`. GitHub closes linked issues on merge whatever the body says.
@@ -30,7 +28,7 @@ Otherwise show a plan detailed enough to catch a wrong task before any work star
 
 - The change: what will behave differently, and which files or components it touches.
 - The issue it covers, and whether it fully resolves it.
-- The branch: reuse the current one, or create one following the repo's conventions, or the `handoff` skill's [working rules](../handoff/references/working-rules.md) in a handoff repo (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it).
+- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it).
 - The checks that will be run.
 - Assumptions, and questions that block the plan.
 
@@ -62,10 +60,9 @@ Ask: "Push and open this PR?" and stop.
 ## 5. Publish and verify
 
 - Immediately before publishing, confirm the branch tip still matches what was approved and that no PR for this branch exists now. Any change to the branch needs a new approval.
-- In a handoff repo, commit pending `HANDOFF.md` changes before pushing, as the `AGENTS.md` handoff rules require, and remove this PR's pending request if one exists; the PR link is recorded at the next wrap-up.
 - Push without force. Create the PR with `gh pr create --body-file <file>` holding the exact approved body. Add no labels, reviewers, or comments that were not shown.
 - Fetch the PR and check its base, head, commit tip, title, and body, and that `closingIssuesReferences` lists only the issues shown for approval. Reply with the PR as a Markdown link and the state of its checks.
-- If publishing fails, keep the local branch and the approved draft, and report the failure with the request still open; in a handoff repo, also record the request in `HANDOFF.md`.
+- If publishing fails, keep the local branch and the approved draft, and report the failure with the request still open.
 
 Opening a PR does not authorize merging, force-pushing, or further changes.
 
