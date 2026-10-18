@@ -1,15 +1,15 @@
 ---
 name: handoff
-description: Keep a project's HANDOFF.md current so any session, worktree, or computer can resume work, with issue handoff notes, ranked work, pending approvals, durable docs, and verified Git checkpoints. Use when the user says "wrap up", "let's stop here", "end the session", "hand off", or similar; when the user asks to open, file, or create a PR; and when the user accepts a branch's work before its PR merges.
+description: Keep a project's HANDOFF.md current so any session, worktree, or computer can resume work, with issue handoff notes, ranked work, pending approvals, durable docs, and verified Git checkpoints. Use when the user says "wrap up", "let's stop here", "end the session", "hand off", or similar.
 ---
 
 # Handoff
 
 Leave the project so the next session can resume without this conversation. `HANDOFF.md` at the repository root holds the resume point for each active branch, the ranked work, and pending approval requests. GitHub issues hold work details and history. Lasting knowledge goes in the docs folder.
 
-The rules for `HANDOFF.md` that every session follows live in [the AGENTS.md template](assets/agents-handoff.md); read it first. This skill adds the end-of-session and before-merge procedures. [An example `HANDOFF.md`](assets/HANDOFF.md) shows the format.
+The rules for `HANDOFF.md` that every session follows live in [the AGENTS.md template](assets/agents-handoff.md) and [the working rules](references/working-rules.md); read them first. This skill adds the end-of-session procedure. [An example `HANDOFF.md`](assets/HANDOFF.md) shows the format.
 
-**Opening a PR:** follow [the PR procedure](references/open-pr.md) and skip the steps below.
+**Opening a PR:** use the `open-pr` skill and skip the steps below.
 
 **Docs folder:** use `docs/`, unless the repo already has a `doc/` folder; then use `doc/` and do not create `docs/`. Below, `<docs>` means that folder.
 
@@ -40,11 +40,11 @@ Never put secrets or local paths containing personal IDs in an issue or comment.
 
 Create it from the example's headings if it is missing. If `.agents/next-steps.md` or `.agents/pending.md` exist from the older workflow, move their content into the matching sections, delete them, and delete `.agents/` if nothing else is in it.
 
-- **This branch's subsection:** replace it with the current state, following the template's field list. Replace stale content instead of adding to it. On the default branch with no work branch, there is no subsection; see step 7.
+- **This branch's subsection:** replace it with the current state, following the working rules' field list. Replace stale content instead of adding to it. On the default branch with no work branch, there is no subsection; see step 6.
 - **Ranked work:** one line per issue or local task, with an optional short reason. Drop closed items, add new ones, and re-order only when priorities changed. Put blocking decisions before dependent work; keep unrelated unblocked work visible. If nothing is in progress, the top item is the next task.
-- **Pending:** give each request a stable ID (`P-01`), kept while it is unresolved. Record the proposed action, its scope, why approval is needed, and exactly what it blocks. Include issue drafts in full. Requests that belong to this branch, such as a push or PR, go in its subsection; others go under `Pending`.
-- **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, follow [the PR procedure](references/open-pr.md); approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
-- **Cleanup:** remove subsections of other branches whose PR has merged or closed.
+- **Pending:** record each request in the format the [working rules](references/working-rules.md#approval-requests) describe, keeping its ID while it is unresolved. Include issue drafts in full.
+- **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, use the `open-pr` skill; approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
+- **Cleanup:** remove subsections of branches whose PR has merged or closed, moving anything still unresolved in them to the issue or to `Pending`. Merged branches are not cleaned up before they merge; the next session does it here.
 
 ## 4. Move long-term knowledge into `<docs>/`
 
@@ -62,19 +62,12 @@ Read [the AGENTS.md template](assets/agents-handoff.md) and the project's root `
 - If they are absent, insert the template once, after the project overview. Remove older continuity instructions it supersedes, including a `session-continuity` marked section and rules about `.agents/next-steps.md`, `.agents/pending.md`, or parked pending items. Do not rewrite, shorten, or reword unrelated sections; keep their examples and reasons.
 - Put project-specific additions outside the markers. If the copy already matches the template, leave the file untouched.
 
-## 6. Before merge
-
-When the user accepts a branch's work and its PR is ready to merge, run only this step and step 7:
-
-- Remove the branch's subsection and its resolved pending requests, and update `Ranked work` to read as it will after the merge.
-- Move anything still unresolved from the subsection to the issue or to `Pending`.
-
-## 7. Save, verify, and report
+## 6. Save, verify, and report
 
 - Use the `commit` skill. Put `HANDOFF.md`, `<docs>/`, and `AGENTS.md` updates in a `docs:` commit on the work branch, separate from source commits. Commit only when there are changes.
-- **No work branch** (on the default branch): create the next ranked task's branch from its issue as the template describes, and commit there. If there is no next task, leave the changes uncommitted and report them.
+- **No work branch** (on the default branch): create the next ranked task's branch from its issue as the working rules describe, and commit there. If there is no next task, leave the changes uncommitted and report them.
 - If unfinished source changes remain uncommitted, note the files in the branch subsection and report them. Do not imply that committing `HANDOFF.md` also saved them.
-- Push only within the user's existing authorization; otherwise record the push request in the branch subsection. Creating a PR needs its own authorization; open it with [the PR procedure](references/open-pr.md). Pushing also publishes the branch's earlier unpushed commits.
+- Push only within the user's existing authorization; otherwise record the push request in the branch subsection. Creating a PR needs its own authorization; open it with the `open-pr` skill. Pushing also publishes the branch's earlier unpushed commits.
 - Before reporting, inspect the final working tree and confirm which commits were pushed. Say plainly when another computer cannot retrieve the handoff or the work yet.
 - Use the reply template below; it lists requests still awaiting approval. If the user answers afterwards, resolve them as in step 3 and save the result normally.
 

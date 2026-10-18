@@ -7,7 +7,8 @@ Agent skills I use with Claude Code and Codex. Each one is a folder under `skill
 | Skill | What it does | Try it |
 | --- | --- | --- |
 | `commit` | Commits as atomic Conventional Commits, never on `main`/`master` or a merged branch | "Commit these changes" in a repo with a diff |
-| `handoff` | Keeps a root `HANDOFF.md` current so any session, worktree, or computer can resume: per-branch state, ranked work, pending approvals, issue handoffs, and verified Git checkpoints. Also opens PRs after you approve a plan and then the finished branch | "Let's wrap up" at the end of a session, or "Open a PR for #12" |
+| `handoff` | Keeps a root `HANDOFF.md` current so any session, worktree, or computer can resume: per-branch state, ranked work, pending approvals, issue handoffs, and verified Git checkpoints. Uses `commit` and `open-pr` | "Let's wrap up" at the end of a session |
+| `open-pr` | Opens a GitHub PR after two approvals: a plan before any work, then the finished branch, title, and body before anything is pushed. Uses `commit` | "Open a PR for #12" |
 
 ## Install
 
@@ -20,7 +21,7 @@ npx skills add pomodorozhong/skills
 Or install specific ones for all your agents:
 
 ```bash
-npx skills add pomodorozhong/skills --skill commit --skill handoff -g -y
+npx skills add pomodorozhong/skills --skill commit --skill handoff --skill open-pr -g -y
 ```
 
 `-g` installs for your user rather than the current project. To update, run the command again.

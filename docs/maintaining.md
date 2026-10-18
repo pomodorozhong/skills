@@ -103,6 +103,10 @@ Undo moves folders back, restores previous links, and removes the links the run 
 
 Run the tests after changing either script. They use temporary folders and never touch your installed skills, and they also check that every `bash` block in the README and this guide is valid.
 
+The same command runs static checks on the skill files: every relative link between them must resolve, and the handoff block copied into each repo's `AGENTS.md` must keep its markers and stay within its word limit. Run it after moving or renaming a skill file, or after adding a rule to that block.
+
 ```bash
 python3 -m unittest discover tests
 ```
+
+CI runs the same command on Linux and macOS for every pull request and every push to `main`.
