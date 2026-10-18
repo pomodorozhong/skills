@@ -108,3 +108,5 @@ The same command runs static checks on the skill files: every relative link betw
 ```bash
 python3 -m unittest discover tests
 ```
+
+CI runs the same command on Linux and macOS for every pull request and every push to `main`.
