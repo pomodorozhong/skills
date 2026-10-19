@@ -11,6 +11,8 @@ Ask for each answer in chat and wait for a reply; silence is not approval. If th
 
 Show everything the user needs to decide (the plan, the questions, each PR's title and body, the review steps) in the closing message text of the turn, followed by the question. Never leave it above a box or panel that may hide it.
 
+**Link every issue and PR:** whenever a message to the user mentions an issue or PR, write it as a Markdown link to its full URL with its title, such as `[#12 Add export](https://github.com/<owner>/<repo>/issues/12)`, taking the owner and repository from the remote it belongs to. This covers the proposal, the review, the publish report, and the PR map. Never write a bare `#N`. PR and commit bodies on GitHub keep the plain `#N` form, which GitHub links itself and needs for closing keywords.
+
 **A PR this skill opened has merged:** if the user asks to update the remaining PRs, or this skill starts while a dependent PR it opened waits on one that has merged, go to [After a prerequisite merges](#after-a-prerequisite-merges).
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
