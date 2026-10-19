@@ -17,6 +17,8 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
+**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack branch, where `<summary>` is the stack branch name without `stack/`: the PR map (`pr-map.md`), the review request (`review.md`), and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees of the trial rebuild go in the scratchpad.
+
 ## 1. Gather context
 
 Read, and change nothing:
@@ -55,7 +57,7 @@ Stop and wait for answers and "go". Apply precise edits without asking again; sh
 
 - Create the stack branch from the up-to-date default branch and record that base commit. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
 - Build the PRs in order. Each PR is one contiguous run of commits, and no commit belongs to two PRs.
-- Keep a **PR map**: the base commit, and for each PR its position, title, branch name, the PRs it depends on, and its commits (short hash and subject). Save it as `propose-stack/<stack branch>.md` in the Git common directory (`git rev-parse --git-common-dir`), which is never committed and is shared by worktrees.
+- Keep a **PR map**: the base commit, and for each PR its position, title, branch name, the PRs it depends on, and its commits (short hash and subject). Save it as `pr-map.md` in the [working files](#propose-a-stack).
 - Implement the approved plan only. If the plan turns out wrong (a PR is much bigger than expected, or needs a PR it was not planned to depend on), stop and ask before changing the plan.
 
 ## 4. Trial rebuild
@@ -76,13 +78,15 @@ Write each PR's title and body following [the rules below](#title-and-body), the
 - **Details to check:** choices made while building that the plan did not settle and that could plausibly differ from the user's goal or taste, such as names, wording users will see, defaults, error behavior, file layout, and scope moved between PRs. For each, say what you chose and the main alternative.
 - Differences from the approved plan.
 
+Save the filled-in review request as `review.md` in the working files, replacing any earlier version, and each PR's body as `body-<position>.md`. Show the review in full in the reply too, with the file's path.
+
 Ask for feedback and stop.
 
 ## 6. Apply feedback and final review
 
 - Put each fix in the PR it belongs to: commit it as a `fixup!` of a commit in that PR, then fold it in with `git rebase -i --autosquash`. The stack branch is never pushed, so rewriting it is safe.
-- Repeat the trial rebuild (step 4) for every changed PR and every PR that depends on one. Update the PR map, titles, and bodies.
-- Show the same review as step 5, plus what changed for each piece of feedback in the template's **Changes since last review** section.
+- Repeat the trial rebuild (step 4) for every changed PR and every PR that depends on one. Update the PR map, titles, and body files.
+- Show the same review as step 5, plus what changed for each piece of feedback in the template's **Changes since last review** section. Save it over the same review file.
 
 Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, repeat this step.
 
@@ -90,10 +94,10 @@ Ask: "Push these N branches and open the PRs?" and stop. If the user gives more 
 
 - Immediately before publishing, confirm the stack branch tip and PR map still match what was approved, and that none of the PR branch names exists locally, on the remote, or as an open PR. Any change needs a new approval.
 - Rebuild each PR branch exactly as in the trial: from the recorded base commit, cherry-pick the commits of the PRs it depends on, then its own. Confirm each branch's tree hash matches the one recorded in the PR map. Do not rebase onto a newer default branch here; that changes what was approved.
-- Push every branch without force. Open each PR with `gh pr create --base <default> --head <branch> --body-file <file>` holding the exact approved body, independent PRs first. Open a dependent PR as a draft (`--draft`) so it cannot be squash-merged before the PRs it needs, which would merge their changes too. Add no labels, reviewers, or comments that were not shown.
+- Push every branch without force. Open each PR with `gh pr create --base <default> --head <branch> --body-file <working files>/body-<position>.md`, which holds the exact approved body, independent PRs first. Open a dependent PR as a draft (`--draft`) so it cannot be squash-merged before the PRs it needs, which would merge their changes too. Add no labels, reviewers, or comments that were not shown.
 - Once all are open, fill the real PR numbers into each body's **Stack** section with `gh pr edit --body-file`. That is the only change allowed to an approved body.
 - Fetch each PR and check its base, head, commit tip, title, body, draft status, and that `closingIssuesReferences` lists only the issues its body closes.
-- Reply with every PR as a Markdown link and the state of its checks, and say which merge order the dependent PRs need. Then propose deleting the local stack branch, the local PR branches, and the PR map; delete only with the user's approval.
+- Reply with every PR as a Markdown link and the state of its checks, and say which merge order the dependent PRs need. Then propose deleting the local stack branch, the local PR branches, and the working files; delete only with the user's approval.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
 Opening the PRs does not authorize merging, force-pushing, or further changes.
