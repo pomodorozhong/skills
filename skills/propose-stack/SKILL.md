@@ -68,7 +68,7 @@ Check that each PR works as its own branch before showing it for review:
 
 ## 5. Review request
 
-Write each PR's title and body following [the rules below](#title-and-body), then show:
+Write each PR's title and body following [the rules below](#title-and-body), then show the following, filling in [the review request template](assets/review-request.md):
 
 - The stack branch, its base commit, and how far the default branch has moved since (`git rev-list --count <base>..origin/<default>`).
 - For each PR: its title, independent or what it depends on, commits (short hash and subject), the trial rebuild's check results (including failed, skipped, or not run), and full body.
@@ -82,7 +82,7 @@ Ask for feedback and stop.
 
 - Put each fix in the PR it belongs to: commit it as a `fixup!` of a commit in that PR, then fold it in with `git rebase -i --autosquash`. The stack branch is never pushed, so rewriting it is safe.
 - Repeat the trial rebuild (step 4) for every changed PR and every PR that depends on one. Update the PR map, titles, and bodies.
-- Show the same review as step 5, plus what changed for each piece of feedback.
+- Show the same review as step 5, plus what changed for each piece of feedback in the template's **Changes since last review** section.
 
 Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, repeat this step.
 
