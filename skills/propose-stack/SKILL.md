@@ -1,6 +1,6 @@
 ---
 name: propose-stack
-description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them together on one stack branch, and publish each as its own branch and PR against the default branch after the user approves the plan, reviews the work, and approves the final branches. Also rebuilds a dependent PR after the PR it needs is squash-merged. Use when the user asks what to work on next as PRs, asks for a stack of PRs, or asks to update a PR after the one it depends on merges.
+description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them together on one stack branch, and publish each as its own branch and PR against the default branch after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and rebuilds a dependent PR after the PR it needs is squash-merged. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, or asks to update a PR after the one it depends on merges.
 ---
 
 # Propose a stack
@@ -14,6 +14,8 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 **Link every issue and PR:** whenever a message to the user mentions an issue or PR, write it as a Markdown link to its full URL with its title, such as `[#12 Add export](https://github.com/<owner>/<repo>/issues/12)`, taking the owner and repository from the remote it belongs to. This covers the proposal, the review, the publish report, and the PR map. Never write a bare `#N`. PR and commit bodies on GitHub keep the plain `#N` form, which GitHub links itself and needs for closing keywords.
 
 **A PR this skill opened has merged:** if the user asks to update the remaining PRs, or this skill starts while a dependent PR it opened waits on one that has merged, go to [After a prerequisite merges](#after-a-prerequisite-merges).
+
+**Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state, and show it in full. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written (commits, check results, how far the default branch has moved, PR numbers and states once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
