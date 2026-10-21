@@ -11,7 +11,7 @@ Each request has a stable ID (`P-01`), the proposed action and scope, why approv
 - To resume an issue from another computer, find its branch with `gh issue develop --list <N>`, fetch it, and read that branch's `HANDOFF.md`. Preserve local changes when switching checkouts.
 - When comparing the code checkpoint with `git log`, list the commits made after it, skipping the branch's own `docs:` commits that only touch `HANDOFF.md` or the docs folder.
 - Verify issue and PR status when GitHub is available; the AGENTS.md block covers commits on a merged or closed branch. A subsection whose PR has merged or closed is stale: remove it in your next `docs:` commit, moving anything unresolved to the issue or to `Pending`.
-- Handle only the approvals the chosen action needs, and continue other authorized work.
+- After showing the user what waits on them, as the AGENTS.md block says, handle the approvals the chosen action needs, and continue other authorized work while the rest stay unanswered.
 
 ## Creating a branch
 
