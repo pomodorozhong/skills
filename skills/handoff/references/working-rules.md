@@ -4,14 +4,15 @@ The short block in [the AGENTS.md template](../assets/agents-handoff.md) holds t
 
 ## Approval requests
 
-Each request has a stable ID (`P-01`), the proposed action and scope, why approval is needed, and what it blocks. Requests that belong to a branch, such as a push or PR, go in its subsection; others, such as issue drafts, go under `Pending`.
+Each request has a stable ID (`P-01`), the proposed action and scope, why approval is needed, and what it blocks. Requests that belong to a branch, such as a push or PR, go in its subsection; others, such as issue drafts, go under `Pending`. A proposal awaiting the user's confirmation, such as a planned PR stack, is a request too: record the complete proposal and every open question, never an "unconfirmed" line in `Ranked work`.
 
 ## Start of a session
 
 - To resume an issue from another computer, find its branch with `gh issue develop --list <N>`, fetch it, and read that branch's `HANDOFF.md`. Preserve local changes when switching checkouts.
 - When comparing the code checkpoint with `git log`, list the commits made after it, skipping the branch's own `docs:` commits that only touch `HANDOFF.md` or the docs folder.
 - Verify issue and PR status when GitHub is available; the AGENTS.md block covers commits on a merged or closed branch. A subsection whose PR has merged or closed is stale: remove it in your next `docs:` commit, moving anything unresolved to the issue or to `Pending`.
-- After showing the user what waits on them, as the AGENTS.md block says, handle the approvals the chosen action needs, and continue other authorized work while the rest stay unanswered.
+- Another branch's subsection in this copy of `HANDOFF.md` may be out of date. When that branch is available locally or on the remote, check its requests against its own `HANDOFF.md` before showing them.
+- Once the user has seen what waits on them, handle only the approvals the chosen action needs; the rest stay open while other authorized work continues.
 
 ## Creating a branch
 
