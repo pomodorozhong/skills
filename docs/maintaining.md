@@ -1,6 +1,6 @@
 # Maintaining these skills
 
-This guide covers editing, backing up, and installing the skills in this repository on your own machines. To only install them, see the [README](../README.md). The approach follows [Back up and install Codex and Claude Code skills from one Git repo](https://github.com/pomodorozhong/rabbit-holes/blob/master/topics/agent_skills/backup-and-restore.md).
+This guide covers editing, backing up, and installing the skills in this repository on your own machines. To only install them, see the [README](../README.md). The approach follows [Maintain a personal checkout as the installation](https://github.com/pomodorozhong/rabbit-holes/blob/master/topics/agent_skills/installing-and-sharing-skills.md#maintain-a-personal-checkout-as-the-installation).
 
 ## How it works
 
