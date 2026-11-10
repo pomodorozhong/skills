@@ -40,20 +40,28 @@ Never put secrets or local paths containing personal IDs in an issue or comment.
 
 Create it from the example's headings if it is missing. If `.agents/next-steps.md` or `.agents/pending.md` exist from the older workflow, move their content into the matching sections, delete them, and delete `.agents/` if nothing else is in it.
 
-- **This branch's subsection:** replace it with the current state, following the working rules' field list. Replace stale content instead of adding to it. On the default branch with no work branch, there is no subsection; see step 6.
+- **This branch's subsection:** replace it with the current state, following the working rules' field list. Replace stale content instead of adding to it. On the default branch with no work branch, there is no subsection; see step 7.
 - **Ranked work:** one line per issue or local task, with an optional short reason. Drop closed items, add new ones, and re-order only when priorities changed. Put blocking decisions before dependent work; keep unrelated unblocked work visible. Work awaiting the user's confirmation is a pending request, not a ranked line. If nothing is in progress, the top item is the next task.
 - **Pending:** record each request in the format the [working rules](references/working-rules.md#approval-requests) describe, keeping its ID while it is unresolved. Include issue drafts and unconfirmed proposals, such as a planned PR stack, in full with every open question.
 - **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, use the `open-pr` skill; approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
 - **Cleanup:** remove subsections of branches whose PR has merged or closed, moving anything still unresolved in them to the issue or to `Pending`. Merged branches are not cleaned up before they merge; the next session does it here.
 
-## 4. Move long-term knowledge into `<docs>/`
+## 4. Clean up branches
+
+Sort the local branches and worktrees as [the branch cleanup procedure](references/branch-cleanup.md) describes. Do this after step 3, so the In progress section protects the branches it names.
+
+- Delete local branches that are Merged, Handoff-only, or Superseded without asking, and record each as `name sha` for the final reply.
+- Remote deletions, branches closed without merging, and branches with unique work need approval: ask once with the whole list. If the user does not answer, record it as a `P-xx` request in `Pending`.
+- When GitHub is unavailable, skip the remote part and any class that needs PR status.
+
+## 5. Move long-term knowledge into `<docs>/`
 
 Durable knowledge goes in `<docs>/`: architecture, decisions and their reasons, workflow assumptions, gotchas, and user-facing behavior (`README.md`).
 
 - Update the existing doc that covers the topic; create a new one only when none fits, and link it from the folder's index (`<docs>/README.md`), creating the index if needed.
 - Fix any doc statements that this session made stale.
 
-## 5. Keep `AGENTS.md` in sync
+## 6. Keep `AGENTS.md` in sync
 
 Read [the AGENTS.md template](assets/agents-handoff.md) and the project's root `AGENTS.md`.
 
@@ -62,7 +70,7 @@ Read [the AGENTS.md template](assets/agents-handoff.md) and the project's root `
 - If they are absent, insert the template once, after the project overview. Remove older continuity instructions it supersedes, including a `session-continuity` marked section and rules about `.agents/next-steps.md`, `.agents/pending.md`, or parked pending items. Do not rewrite, shorten, or reword unrelated sections; keep their examples and reasons.
 - Put project-specific additions outside the markers. If the copy already matches the template, leave the file untouched.
 
-## 6. Save, verify, and report
+## 7. Save, verify, and report
 
 - Use the `commit` skill. Put `HANDOFF.md`, `<docs>/`, and `AGENTS.md` updates in a `docs:` commit on the work branch, separate from source commits. Commit only when there are changes.
 - **No work branch** (on the default branch): create the next ranked task's branch from its issue as the working rules describe, and commit there. If there is no next task, leave the changes uncommitted and report them.
@@ -78,6 +86,7 @@ Before writing the final reply, read and fill in [the reply template](assets/han
 - **Verdict first:** open with one bold line saying whether it is safe to stop: "Safe to stop: everything is pushed." or "Not safe yet:" followed by what exists only on this computer (unpushed commits, uncommitted files). Then name the branch and PR to resume from. Do not restate the branch's `HANDOFF.md` subsection; it is the record.
 - **Needs you:** each request still awaiting approval, with its ID, proposed action, and what it blocks, plus any question the user has not answered. Omit the section when nothing needs the user.
 - **Done:** one plain past-tense bullet per change, decision, or filed item. Link directly to the comment when reporting a handoff note.
+- **Cleaned up:** each local branch deleted this session as `name sha`, with the restore command `git branch <name> <sha>`, plus remote branches deleted with approval. Omit the section when nothing was deleted.
 - **Commits:** exactly one commit per bullet, with its short hash and subject; never combine commits on one line. Omit the section when no commits were made.
 - **Next:** the next 2–4 concrete tasks in priority order, one per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
 - Make every issue and PR mention a Markdown link, including repeated mentions. Scale to the session: a small session may be just the verdict line and `Next`.

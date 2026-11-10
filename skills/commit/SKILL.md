@@ -46,7 +46,7 @@ Run the project's checks if it documents them (in its README, `AGENTS.md`, or `C
 
 - Push only when authorized by the user, and push the feature branch, never `main` or `master`. A push request does not authorize creating a PR or merging.
 - If the branch's PR has merged since the commits were made, move the new commits to a fresh branch from the up-to-date default branch with `git cherry-pick`, and push that branch instead.
-- After a successful push, review all local branches for stale candidates. Propose deletions with each candidate's PR/merge status and any unique work that would be lost. Delete only the branches explicitly approved by the user.
+- After moving commits off a merged branch, propose deleting that old local branch, with its PR status and any unique work that would be lost, and delete it only with the user's approval. Leave other branches alone.
 
 ## 6. Report
 
