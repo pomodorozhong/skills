@@ -21,7 +21,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
-**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` names the stack's goal in a few words: the review request (`review.md`) and each PR's body (`body-<position>.md`). `gh stack` itself tracks the branches and their order. Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
+**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` names the stack's goal in a few words: the review request (`review.md`) and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
 
 ## 1. Gather context
 
@@ -76,11 +76,11 @@ Write each PR's title and body following [the rules below](#title-and-body), the
 
 - The stack's base commit (`git merge-base origin/<default> <bottom branch>`), and how far the default branch has moved since (`git rev-list --count <base>..origin/<default>`).
 - For each PR, in stack order from the bottom: its title, branch, commit range and count, the check results (including failed, skipped, or not run), and full body.
-- **Review steps:** how to try each PR (check out its branch in a detached worktree, then the commands to run and what to look at), most important first.
+- **Review steps:** how to try each PR (check out its branch in a detached worktree, then the commands to run and what to look at).
 - **Details to check:** choices made while building that the plan did not settle and that could plausibly differ from the user's goal or taste, such as names, wording users will see, defaults, error behavior, file layout, and scope moved between PRs. For each, say what you chose and the main alternative.
 - Differences from the approved plan.
 
-Save each PR's body as `body-<position>.md` and the filled-in review request as `review.md` in the working files, replacing any earlier versions. The body files are the only saved copy of the bodies: in the saved `review.md`, each body section gives its file's path instead of the text. Give `review.md`'s path in the reply.
+Save each PR's body as `body-<position>.md` and the filled-in review request as `review.md` in the working files, replacing any earlier versions. Give `review.md`'s path in the reply.
 
 Ask for feedback and stop.
 
@@ -96,10 +96,10 @@ Ask: "Push these N branches and open the PRs?" and stop. If the user gives more 
 
 - Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
 - Push every branch with `gh stack push`.
-- Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. Open every PR ready for review, not as a draft. Add no labels, reviewers, or comments that were not shown.
+- Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. Add no labels, reviewers, or comments that were not shown.
 - Group them into a stack on GitHub with `gh stack link <PR numbers, bottom first>`. If linking fails, report it and leave the PRs open.
 - Fetch each PR and check its base, head, commit tip, title, and body, and that `gh stack view` shows all of them in order. For the bottom PR, also check that `closingIssuesReferences` lists only the issues its body closes; the others target a branch, so GitHub fills that in only once they are retargeted.
-- Reply with every PR and the state of its checks. Keep the local branches and the stack's local tracking: [After a PR merges](#after-a-pr-merges) needs them.
+- Reply with every PR and the state of its checks.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
 Opening the PRs does not authorize merging (`gh stack merge`), force-pushing, or further changes.
@@ -117,7 +117,7 @@ A squash merge puts a PR's changes on the default branch as one new commit, so t
 
 ## Title and body
 
-Use the repository's PR template if it has one; otherwise fill in [the PR body template](assets/pr-body.md). Do not list the other PRs in the stack; GitHub shows the stack on each PR.
+Use the repository's PR template if it has one; otherwise fill in [the PR body template](assets/pr-body.md).
 
 - **Title:** the concrete change in Conventional Commit style when that fits the repo. No issue references or positions in the title.
 - **Body:** written for a reviewer who has not seen the conversation, from that PR's own commits and real results only. Never invent results or issue links.

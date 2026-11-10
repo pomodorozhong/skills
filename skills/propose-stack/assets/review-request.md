@@ -51,5 +51,3 @@ Look at: [what to check, most important first].
 ### 2. [title]
 
 [Same as above.]
-
-[Question: step 5 asks for feedback; step 6 asks "Push these N branches and open the PRs?"]
