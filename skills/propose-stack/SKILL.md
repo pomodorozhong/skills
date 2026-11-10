@@ -21,7 +21,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
-**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` names the stack's goal in a few words: the review request (`review.md`) and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
+**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` is the bottom branch's name with each `/` replaced by `-`, so a later session can find the folder from the bottom branch that `gh stack view` shows: the review request (`review.md`) and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
 
 ## 1. Gather context
 
@@ -59,7 +59,7 @@ Stop and wait for answers and "go". Apply precise edits without asking again; sh
 
 ## 3. Build the stack
 
-- Fetch the default branch, then start the stack with `gh stack init --base <default> <first branch>`. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
+- Fetch, then fast-forward the local default branch to `origin/<default>`, because `gh stack init` builds on the local branch: `git fetch origin <default>:<default>`, or `git merge --ff-only origin/<default>` where it is checked out. If it cannot fast-forward, stop and ask. Then start the stack with `gh stack init --base <default> <first branch>`. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
 - Build the PRs in order: commit each PR's work on its own branch, then `gh stack add <next branch>` to start the next one on top.
 - Implement the approved plan only. If the plan turns out wrong (a PR is much bigger than expected, or needs a PR above it), stop and ask before changing the plan.
 
@@ -94,7 +94,7 @@ Ask: "Push these N branches and open the PRs?" and stop. If the user gives more 
 
 ## 7. Publish and verify
 
-- Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
+- Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches and none of them exists on the remote yet (`git ls-remote --heads origin <branch>` prints nothing). `gh stack push` force-pushes with a lease, so it would overwrite a remote branch of the same name; if one exists, stop and ask. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
 - Push every branch with `gh stack push`.
 - Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. Add no labels, reviewers, or comments that were not shown.
 - Group them into a stack on GitHub with `gh stack link <PR numbers, bottom first>`. If linking fails, report it and leave the PRs open.
@@ -108,7 +108,7 @@ Opening the PRs does not authorize merging (`gh stack merge`), force-pushing, or
 
 A squash merge puts a PR's changes on the default branch as one new commit, so the branches above it still carry its original commits. Rebase them onto the updated default branch.
 
-1. **Find what changed:** check out the stack and run `gh stack view` to see which PRs merged. If a PR was closed without merging, stop and ask.
+1. **Find what changed:** check out the stack and run `gh stack view` to see which PRs merged. If a PR was closed without merging, stop and ask. For each merged PR, check that every issue its body closes is now closed: a PR merged into the branch below it instead of the default branch does not close its issues. Report any left open, and propose closing them once their changes are on the default branch; close them only with the user's approval.
 2. **Rebase locally:** note each remaining branch's current tip, then run `gh stack rebase`, which fetches and rebases the remaining branches onto the default branch, dropping the merged commits. Resolve conflicts with `gh stack rebase --continue`, and stop and ask about any that needs a decision. Run the checks on each rebased branch. Do not use `gh stack sync`, which pushes without asking.
 3. **Approval:** for each remaining PR, show the old and new tip, the commits now on the branch, the check results, and the conflicts resolved. Ask: "Force-push these N branches?" and stop.
 4. **Publish:** push with `gh stack push`, whose per-branch `--force-with-lease` refuses to overwrite a branch that changed on the remote since the rebase fetched it.
