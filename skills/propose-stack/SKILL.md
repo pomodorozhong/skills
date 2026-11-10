@@ -1,6 +1,6 @@
 ---
 name: propose-stack
-description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them as a stack of branches with `gh stack`, and publish them as a stacked set of PRs on GitHub after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and keeps it up to date after a PR in it merges or the default branch moves ahead. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, or asks to update the remaining PRs after one merges or the stack falls behind.
+description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them as a stack of branches with `gh stack`, and publish them as a stacked set of PRs on GitHub after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and keeps it up to date after a PR in it merges or the default branch moves ahead. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, asks to update the remaining PRs after one merges or the stack falls behind, or asks to merge the stack or part of it.
 ---
 
 # Propose a stack
@@ -21,7 +21,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **The stack has changed on GitHub:** if the user asks to update the remaining PRs, or this skill starts while a stack it opened has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, go to [Keep the stack up to date](#keep-the-stack-up-to-date).
 
-**Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written from `gh stack view --json` and `git` (commits, check results, how far the default branch has moved, PR numbers and states once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
+**Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written from `gh stack view --json` and `git` (commits, check results, how far the default branch has moved, and each PR's link and state, open, queued, merged, or closed, in the **PR** column once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
 
 **Same repository only:** GitHub stacks need every branch in the repository the PRs target; cross-fork stacks are not supported. If the branches would be pushed to a fork of the repository the PRs target, say so and stop before proposing.
 
@@ -112,6 +112,8 @@ Ask: "Push these N branches and open the PRs?" and stop. If the user gives more 
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
 Opening the PRs does not authorize merging, force-pushing, or further changes. If the user later asks to merge, use `gh stack merge <PR number> --yes` with the merge method the user names (`--squash`, `--merge`, or `--rebase`; without one it reuses the last-used method). It merges that PR and every unmerged PR below it, all or nothing; `gh pr merge` cannot merge a stack, and stacked PRs support neither auto-merge nor bypassing merge rules. If the default branch uses a merge queue, the PRs are queued instead and the queue picks the method.
+
+After a merge, check the result: `gh stack view --json` marks each merged branch `isMerged`, and every issue a merged PR's body closes is closed. Report any issue left open and propose closing it; close it only with the user's approval. If PRs remain open, continue with [Keep the stack up to date](#keep-the-stack-up-to-date) from its first step, which also catches what the merge queue has not merged yet; if every PR has merged, go to its **Clean up** step.
 
 ## Keep the stack up to date
 

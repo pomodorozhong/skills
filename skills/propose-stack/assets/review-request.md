@@ -6,10 +6,10 @@ Base `[short hash]`; `[default]` has moved [K] commits since.
 
 ## Branches
 
-| # | Branch | Title | Issue | Commits | Checks |
-|---|--------|-------|-------|---------|--------|
-| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
-| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ |
+| # | Branch | Title | Issue | Commits | Checks | PR |
+|---|--------|-------|-------|---------|--------|----|
+| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] | Not opened yet |
+| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ | [#[N] [PR title]](https://github.com/[owner]/[repo]/pull/[N]) open / queued / merged / closed |
 
 ## Changes since last review
 
