@@ -1,4 +1,4 @@
-## Review request: [N] PRs on `[stack branch]`
+## Review request: a stack of [N] PRs
 
 Base `[short hash]`; `[default]` has moved [K] commits since.
 
@@ -6,10 +6,10 @@ Base `[short hash]`; `[default]` has moved [K] commits since.
 
 ## Branches
 
-| # | Branch | Title | Issue | Depends on | Commits | Checks (rebuilt on `[default]`) |
-|---|--------|-------|-------|------------|---------|---------------------------------|
-| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | None | `[first]..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
-| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | 1 | `[first]..[last]` ([count]) | [check] ✅ |
+| # | Branch | Targets | Title | Issue | Commits | Checks |
+|---|--------|---------|-------|-------|---------|--------|
+| 1 | `[branch]` | `[default]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
+| 2 | `[branch]` | `[branch 1]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ |
 
 ## Changes since last review
 
@@ -32,8 +32,7 @@ Most important first.
 ### [#]. [title]
 
 ```bash
-git worktree add --detach [scratchpad]/pr-[#] [base]
-git -C [scratchpad]/pr-[#] cherry-pick [prerequisite commits] [own commits]
+git worktree add --detach [scratchpad]/pr-[#] [branch]
 [command to run]
 ```
 
