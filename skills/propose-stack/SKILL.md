@@ -1,6 +1,6 @@
 ---
 name: propose-stack
-description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them as a stack of branches with `gh stack`, and publish them as a stacked set of PRs on GitHub after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and rebases the stack after a PR in it merges. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, or asks to update the remaining PRs after one merges.
+description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them as a stack of branches with `gh stack`, and publish them as a stacked set of PRs on GitHub after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and keeps it up to date after a PR in it merges or the default branch moves ahead. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, or asks to update the remaining PRs after one merges or the stack falls behind.
 ---
 
 # Propose a stack
@@ -15,9 +15,11 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **Requires `gh stack`:** before running any `gh stack` command, check `gh stack --version`. If the extension is missing, stop and propose installing it with `gh extension install github/gh-stack`; install only with the user's approval.
 
-**A PR in the stack has merged:** if the user asks to update the remaining PRs, or this skill starts while a stack it opened has a merged PR, go to [After a PR merges](#after-a-pr-merges).
+**The stack has changed on GitHub:** if the user asks to update the remaining PRs, or this skill starts while a stack it opened has a merged PR or a branch that `gh stack view` marks as needing a rebase, go to [Keep the stack up to date](#keep-the-stack-up-to-date).
 
 **Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written from `gh stack view --json` and `git` (commits, check results, how far the default branch has moved, PR numbers and states once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
+
+**Same repository only:** GitHub stacks need every branch in the repository the PRs target; cross-fork stacks are not supported. If the branches would be pushed to a fork of the repository the PRs target, say so and stop before proposing.
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
@@ -53,6 +55,7 @@ Then show:
 - Why these PRs, and the candidates you left out with one line each on why.
 - The branch name each PR will get, following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`).
 - Assumptions.
+- That `gh stack init` turns on `git rerere` (Git remembers how conflicts were resolved) in this repository's local Git config.
 - **Questions:** three to five, only about choices that are costly to change once built: public APIs and names, data and file formats, new dependencies, scope boundaries between PRs, stack order, and behavior users will rely on. Give your recommended answer for each. Skip anything cheap to change during review.
 
 Stop and wait for answers and "go". Apply precise edits without asking again; show the revised plan for substantive ones.
@@ -98,22 +101,23 @@ Ask: "Push these N branches and open the PRs?" and stop. If the user gives more 
 - Push every branch with `gh stack push`.
 - Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. Add no labels, reviewers, or comments that were not shown.
 - Group them into a stack on GitHub with `gh stack link <PR numbers, bottom first>`. If linking fails, report it and leave the PRs open.
-- Fetch each PR and check its base, head, commit tip, title, and body, and that `gh stack view` shows all of them in order. For the bottom PR, also check that `closingIssuesReferences` lists only the issues its body closes; the others target a branch, so GitHub fills that in only once they are retargeted.
-- Reply with every PR and the state of its checks.
+- Fetch each PR and check its base, head, commit tip, title, and body, and that `gh stack view` shows all of them in order. For each PR, also check that `closingIssuesReferences` lists no issue its body does not close, and report what it lists; GitHub's docs do not say whether it is filled in for PRs above the bottom.
+- Reply with every PR and the state of its checks, and say that the stack must be rebased before it can merge whenever the default branch moves ahead of it.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
 Opening the PRs does not authorize merging (`gh stack merge`), force-pushing, or further changes.
 
-## After a PR merges
+## Keep the stack up to date
 
-A squash merge puts a PR's changes on the default branch as one new commit, so the branches above it still carry its original commits. Rebase them onto the updated default branch.
+When the bottom PR merges, GitHub rebases the remaining branches itself so the next PR targets the default branch, and the local branches fall behind the remote. A stack also needs a linear history to merge: it loses it when the default branch moves ahead or a lower branch gets new commits, and `gh stack view` then marks the branches ⚠ (needs rebase).
 
-1. **Find what changed:** check out the stack and run `gh stack view` to see which PRs merged. If a PR was closed without merging, stop and ask. For each merged PR, check that every issue its body closes is now closed; GitHub's stack docs do not say how closing keywords behave for PRs above the bottom. Report any left open and propose closing them; close them only with the user's approval.
-2. **Rebase locally:** note each remaining branch's current tip, then run `gh stack rebase`, which fetches and rebases the remaining branches onto the default branch, dropping the merged commits. Resolve conflicts with `gh stack rebase --continue`, and stop and ask about any that needs a decision. Run the checks on each rebased branch. Do not use `gh stack sync`, which pushes without asking.
-3. **Approval:** for each remaining PR, show the old and new tip, the commits now on the branch, the check results, and the conflicts resolved. Ask: "Force-push these N branches?" and stop.
-4. **Publish:** push with `gh stack push`, whose per-branch `--force-with-lease` refuses to overwrite a branch that changed on the remote since the rebase fetched it.
-5. **Verify:** check each PR's tip, base, and diff, and reply with the PRs.
-6. **Clean up:** once every PR in the stack has merged, propose `gh stack unstack --local` and deleting the local branches and the working files; do it only with the user's approval.
+1. **Find what changed:** check out the stack. Before fetching, note each remaining branch's local tip and its remote-tracking tip (`origin/<branch>`). Then fetch and run `gh stack view` to see which PRs merged and which branches need a rebase. If a PR was closed without merging, stop and ask. For each merged PR, check that every issue its body closes is now closed; GitHub's stack docs do not say how closing keywords behave for PRs above the bottom. Report any left open and propose closing them; close them only with the user's approval.
+2. **Catch up with GitHub:** for each branch whose remote tip changed, such as after GitHub's own rebase, move the local branch to the new remote tip only if its local tip equals the remote-tracking tip noted before fetching, so it holds nothing unpushed: `git branch -f <branch> origin/<branch>`, or `git reset --hard origin/<branch>` for the checked-out branch when its working tree is clean. If it holds unpushed commits, stop and ask. This needs no push.
+3. **Rebase only if needed:** if `gh stack view` still marks a branch as needing a rebase, note each remaining branch's current tip, then run `gh stack rebase`, which fetches and rebases the remaining branches onto the default branch, dropping the merged commits. Resolve conflicts with `gh stack rebase --continue`, and stop and ask about any that needs a decision. Run the checks on each rebased branch. Do not use `gh stack sync`, which pushes without asking. If nothing needs a rebase, skip to step 6.
+4. **Approval:** for each rebased PR, show the old and new tip, the commits now on the branch, the check results, and the conflicts resolved. Ask: "Force-push these N branches?" and stop.
+5. **Publish:** push with `gh stack push`, whose per-branch `--force-with-lease` refuses to overwrite a branch that changed on the remote since the rebase fetched it.
+6. **Verify:** check each PR's tip, base, and diff, and that `gh stack view` shows no branch needing a rebase, and reply with the PRs.
+7. **Clean up:** once every PR in the stack has merged, propose `gh stack unstack --local` and deleting the local branches and the working files; do it only with the user's approval.
 
 ## Title and body
 
