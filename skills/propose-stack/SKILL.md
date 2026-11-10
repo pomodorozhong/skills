@@ -11,7 +11,7 @@ Ask for each answer in chat and wait for a reply; silence is not approval. If th
 
 Show everything the user needs to decide (the plan, the questions, each PR's title and body, the review steps) in the closing message text of the turn, followed by the question. Never leave it above a box or panel that may hide it.
 
-**Link every issue and PR:** whenever a message to the user mentions an issue or PR, write it as a Markdown link to its full URL with its title, such as `[#12 Add export](https://github.com/<owner>/<repo>/issues/12)`, taking the owner and repository from the remote it belongs to. This covers the proposal, the review, the publish report, and the PR map. Never write a bare `#N`. PR and commit bodies on GitHub keep the plain `#N` form, which GitHub links itself and needs for closing keywords.
+**Link every issue and PR:** whenever a message to the user mentions an issue or PR, write it as a Markdown link to its full URL with its title, such as `[#12 Add export](https://github.com/<owner>/<repo>/issues/12)`, taking the owner and repository from the remote it belongs to. This covers the proposal, the review, and the publish report. Never write a bare `#N`. PR and commit bodies on GitHub keep the plain `#N` form, which GitHub links itself and needs for closing keywords.
 
 **Requires `gh stack`:** before building, check `gh stack --version`. If the extension is missing, stop and propose installing it with `gh extension install github/gh-stack`; install only with the user's approval.
 
@@ -21,7 +21,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
-**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` names the stack's goal in a few words: the PR map (`pr-map.md`), the review request (`review.md`), and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
+**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` names the stack's goal in a few words: the review request (`review.md`) and each PR's body (`body-<position>.md`). `gh stack` itself tracks the branches and their order. Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
 
 ## 1. Gather context
 
@@ -51,7 +51,7 @@ For each PR, show:
 Then show:
 
 - Why these PRs, and the candidates you left out with one line each on why.
-- The branch name each PR will get, following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`), and the trunk (the default branch).
+- The branch name each PR will get, following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`).
 - Assumptions.
 - **Questions:** three to five, only about choices that are costly to change once built: public APIs and names, data and file formats, new dependencies, scope boundaries between PRs, stack order, and behavior users will rely on. Give your recommended answer for each. Skip anything cheap to change during review.
 
@@ -59,16 +59,15 @@ Stop and wait for answers and "go". Apply precise edits without asking again; sh
 
 ## 3. Build the stack
 
-- Fetch the default branch, then start the stack with `gh stack init --base <default> <first branch>` and record the base commit. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
-- Build the PRs in order: commit each PR's work on its own branch, then `gh stack add <next branch>` to start the next one on top. No commit belongs to two PRs.
-- Keep a **PR map**: the base commit, and for each PR its position, title, branch name, what it needs from below, its commits (short hash and subject), and its branch tip. Save it as `pr-map.md` in the [working files](#propose-a-stack).
+- Fetch the default branch, then start the stack with `gh stack init --base <default> <first branch>` and note the base commit for the review. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
+- Build the PRs in order: commit each PR's work on its own branch, then `gh stack add <next branch>` to start the next one on top.
 - Implement the approved plan only. If the plan turns out wrong (a PR is much bigger than expected, or needs a PR above it), stop and ask before changing the plan.
 
 ## 4. Check each layer
 
 Check that each PR works with only the PRs below it before showing it for review:
 
-- For each branch, bottom first, check out its tip in a temporary detached worktree in the scratchpad, run the project's checks, and record the results in the PR map. Remove the worktree afterwards.
+- For each branch, bottom first, check out its tip in a temporary detached worktree in the scratchpad, run the project's checks, and note the results for the review. Remove the worktree afterwards.
 - If a branch fails its checks, it needs something from a PR above it that the plan missed. Stop and report it with a proposed fix: move the shared piece lower, or reorder the stack.
 
 ## 5. Review request
@@ -88,19 +87,19 @@ Ask for feedback and stop.
 ## 6. Apply feedback and final review
 
 - Put each fix in the PR it belongs to: check out that branch (`gh stack checkout <branch>`), commit the fix there, then run `gh stack rebase --upstack` to carry it into every branch above. Nothing is pushed yet, so rewriting the branches is safe.
-- Repeat the checks (step 4) for every changed branch and every branch above it. Update the PR map, titles, and body files.
+- Repeat the checks (step 4) for every changed branch and every branch above it. Update the titles and body files.
 - Show the same review as step 5, plus what changed for each piece of feedback in the template's **Changes since last review** section. Save it over the same review file.
 
 Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, repeat this step.
 
 ## 7. Publish and verify
 
-- Immediately before publishing, confirm each branch tip still matches the PR map that was approved, and that no PR exists for any of the branches. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
+- Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
 - Push every branch with `gh stack push`.
 - Open each PR bottom first with `gh pr create --base <branch below, or the default branch for the bottom PR> --head <branch> --body-file <working files>/body-<position>.md`, which holds the exact approved body. Open every PR ready for review, not as a draft. Add no labels, reviewers, or comments that were not shown.
 - Group them into a stack on GitHub with `gh stack link <PR numbers, bottom first>`. If linking fails, report it and leave the PRs open.
-- Fetch each PR and check its base, head, commit tip, title, and body, and that `gh stack view` shows all of them in order. `closingIssuesReferences` must list only the issues its body closes; for a PR whose base is not the default branch it may be empty until it is retargeted, so check its body's closing keywords instead.
-- Reply with every PR as a Markdown link and the state of its checks, and say that they merge bottom first. Then propose deleting the local branches and the working files; delete only with the user's approval.
+- Fetch each PR and check its base, head, commit tip, title, and body, and that `gh stack view` shows all of them in order. For the bottom PR, also check that `closingIssuesReferences` lists only the issues its body closes; the others target a branch, so GitHub fills that in only once they are retargeted.
+- Reply with every PR as a Markdown link and the state of its checks. Keep the local branches and the stack's local tracking: [After a PR merges](#after-a-pr-merges) needs them.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
 Opening the PRs does not authorize merging (`gh stack merge`), force-pushing, or further changes.
@@ -110,10 +109,11 @@ Opening the PRs does not authorize merging (`gh stack merge`), force-pushing, or
 A squash merge puts a PR's changes on the default branch as one new commit, so the branches above it still carry its original commits. Rebase them onto the updated default branch.
 
 1. **Find what changed:** check out the stack and run `gh stack view` to see which PRs merged. If a PR merged before a PR below it, or a PR was closed without merging, stop and ask.
-2. **Rebase locally:** record each remaining branch's remote tip, then run `gh stack rebase`, which fetches and rebases the remaining branches onto the default branch, dropping the merged commits. Resolve conflicts with `gh stack rebase --continue`, and stop and ask about any that needs a decision. Run the checks on each rebased branch. Do not use `gh stack sync`, which pushes without asking.
+2. **Rebase locally:** note each remaining branch's current tip, then run `gh stack rebase`, which fetches and rebases the remaining branches onto the default branch, dropping the merged commits. Resolve conflicts with `gh stack rebase --continue`, and stop and ask about any that needs a decision. Run the checks on each rebased branch. Do not use `gh stack sync`, which pushes without asking.
 3. **Approval:** for each remaining PR, show the old and new tip, the commits now on the branch, the check results, and the conflicts resolved. Ask: "Force-push these N branches?" and stop.
-4. **Publish:** immediately before, confirm each remote branch still has the tip recorded in step 2. Push with `gh stack push`, which uses `--force-with-lease`.
+4. **Publish:** push with `gh stack push`, whose per-branch `--force-with-lease` refuses to overwrite a branch that changed on the remote since the rebase fetched it.
 5. **Verify:** check each PR's tip, base, and diff, and reply with the PRs as Markdown links.
+6. **Clean up:** once every PR in the stack has merged, propose `gh stack unstack --local` and deleting the local branches and the working files; do it only with the user's approval.
 
 ## Title and body
 

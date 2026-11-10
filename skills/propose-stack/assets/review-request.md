@@ -42,8 +42,6 @@ Look at: [what to check, most important first].
 
 ### 1. [title]
 
-Commits: `[short hash]` [subject], `[short hash]` [subject]
-
 ````markdown
 [body]
 ````
