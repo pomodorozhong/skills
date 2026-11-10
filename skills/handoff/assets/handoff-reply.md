@@ -8,6 +8,10 @@
 
 - [What changed, past tense, linking every issue and PR mention.]
 
+## Cleaned up
+
+- `[branch]` `[sha]` ([Merged | Handoff-only | Superseded], restore with `git branch [branch] [sha]`)
+
 ## Commits
 
 - `[short hash]` [commit subject]

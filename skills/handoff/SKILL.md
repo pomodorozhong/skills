@@ -45,6 +45,10 @@ Create it from the example's headings if it is missing. If `.agents/next-steps.m
 - **Pending:** record each request in the format the [working rules](references/working-rules.md#approval-requests) describe, keeping its ID while it is unresolved. Include issue drafts and unconfirmed proposals, such as a planned PR stack, in full with every open question.
 - **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, use the `open-pr` skill; approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
 - **Cleanup:** remove subsections of branches whose PR has merged or closed, moving anything still unresolved in them to the issue or to `Pending`. Merged branches are not cleaned up before they merge; the next session does it here.
+- **Branch cleanup:** on every wrap-up, sort the local branches and worktrees as [the branch cleanup procedure](references/branch-cleanup.md) describes, after updating `HANDOFF.md` so its In progress section protects the branches it names.
+  - Delete local branches that are Merged, Handoff-only, or Superseded without asking, and record each as `name sha` for the final reply.
+  - Remote deletions, branches closed without merging, and branches with unique work need approval: ask once with the whole list. If the user does not answer, record it as a `P-xx` request in `Pending`.
+  - When GitHub is unavailable, skip the remote part and any class that needs PR status.
 
 ## 4. Move long-term knowledge into `<docs>/`
 
@@ -78,6 +82,7 @@ Before writing the final reply, read and fill in [the reply template](assets/han
 - **Verdict first:** open with one bold line saying whether it is safe to stop: "Safe to stop: everything is pushed." or "Not safe yet:" followed by what exists only on this computer (unpushed commits, uncommitted files). Then name the branch and PR to resume from. Do not restate the branch's `HANDOFF.md` subsection; it is the record.
 - **Needs you:** each request still awaiting approval, with its ID, proposed action, and what it blocks, plus any question the user has not answered. Omit the section when nothing needs the user.
 - **Done:** one plain past-tense bullet per change, decision, or filed item. Link directly to the comment when reporting a handoff note.
+- **Cleaned up:** each local branch deleted this session as `name sha`, with the restore command `git branch <name> <sha>`, plus remote branches deleted with approval. Omit the section when nothing was deleted.
 - **Commits:** exactly one commit per bullet, with its short hash and subject; never combine commits on one line. Omit the section when no commits were made.
 - **Next:** the next 2–4 concrete tasks in priority order, one per bullet. If fewer exist, list only those; if none remain, say so in a single bullet.
 - Make every issue and PR mention a Markdown link, including repeated mentions. Scale to the session: a small session may be just the verdict line and `Next`.
