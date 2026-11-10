@@ -6,10 +6,10 @@ Base `[short hash]`; `[default]` has moved [K] commits since.
 
 ## Branches
 
-| # | Branch | Targets | Title | Issue | Commits | Checks |
-|---|--------|---------|-------|-------|---------|--------|
-| 1 | `[branch]` | `[default]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
-| 2 | `[branch]` | `[branch 1]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ |
+| # | Branch | Title | Issue | Commits | Checks |
+|---|--------|-------|-------|---------|--------|
+| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
+| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]..[last]` ([count]) | [check] ✅ |
 
 ## Changes since last review
 

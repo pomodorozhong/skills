@@ -76,7 +76,7 @@ Check that each PR works with only the PRs below it before showing it for review
 Write each PR's title and body following [the rules below](#title-and-body), then show the following, filling in [the review request template](assets/review-request.md):
 
 - The stack's base commit, and how far the default branch has moved since (`git rev-list --count <base>..origin/<default>`).
-- For each PR: its title, branch, the branch it targets, commits (short hash and subject), the check results (including failed, skipped, or not run), and full body.
+- For each PR, in stack order from the bottom: its title, branch, commits (short hash and subject), the check results (including failed, skipped, or not run), and full body.
 - **Review steps:** how to try each PR (check out its branch in a detached worktree, then the commands to run and what to look at), most important first.
 - **Details to check:** choices made while building that the plan did not settle and that could plausibly differ from the user's goal or taste, such as names, wording users will see, defaults, error behavior, file layout, and scope moved between PRs. For each, say what you chose and the main alternative.
 - Differences from the approved plan.
