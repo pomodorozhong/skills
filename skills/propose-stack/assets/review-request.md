@@ -40,6 +40,8 @@ Look at: [what to check, most important first].
 
 ## PR bodies (exact text)
 
+[In the saved `review.md`, each body is the path of its `body-<position>.md` file; in the reply, its full text.]
+
 ### 1. [title]
 
 ````markdown
