@@ -46,7 +46,7 @@ Run the project's checks if it documents them (in its README, `AGENTS.md`, or `C
 
 - Push only when authorized by the user, and push the feature branch, never `main` or `master`. A push request does not authorize creating a PR or merging.
 - If the branch's PR has merged since the commits were made, move the new commits to a fresh branch from the up-to-date default branch with `git cherry-pick`, and push that branch instead.
-- Do not sweep other branches after a push; the `handoff` skill does that at wrap-up with [its branch cleanup procedure](../handoff/references/branch-cleanup.md). When moving commits off a merged branch, propose deleting that old local branch, with its PR status and any unique work that would be lost, and delete it only with the user's approval.
+- After moving commits off a merged branch, propose deleting that old local branch, with its PR status and any unique work that would be lost, and delete it only with the user's approval. Leave other branches alone.
 
 ## 6. Report
 
