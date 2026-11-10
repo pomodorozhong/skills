@@ -13,13 +13,13 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **Link every issue and PR:** whenever a message to the user mentions an issue or PR, write it as a Markdown link to its full URL with its title, such as `[#12 Add export](https://github.com/<owner>/<repo>/issues/12)`, taking the owner and repository from the remote it belongs to. This covers the proposal, the review, and the publish report. Never write a bare `#N`. PR and commit bodies on GitHub keep the plain `#N` form, which GitHub links itself and needs for closing keywords.
 
-**Requires `gh stack`:** before running any `gh stack` command, check `gh stack --version` and that `git --version` is 2.36 or later. If the extension is missing, stop and propose installing it with `gh extension install github/gh-stack`; install only with the user's approval.
+**Requires `gh stack`:** before running any `gh stack` command, check `gh stack --version` and that `git --version` is 2.38 or later (`gh stack` needs 2.36; folding review fixes in step 7 uses `git rebase --update-refs`, added in 2.38). If the extension is missing, stop and propose installing it with `gh extension install github/gh-stack`; install only with the user's approval.
 
 **Run `gh stack` non-interactively:** some commands open a prompt or a full-screen view in a terminal and wait forever. Read the stack only with `gh stack view --json`, never bare `gh stack view`; use each branch's `needsRebase`, `isMerged`, and `pr` (`number`, `state`) fields. Always name the branch for `init`, `add`, and `checkout`, always pass `--auto` to `gh stack submit`, and never run `gh stack modify` or `gh stack switch`. Set `git config rerere.enabled true` before the first `gh stack init`, which otherwise asks before turning it on.
 
 **The remote:** this skill calls the remote the PRs target `origin`; if it has another name, use that. If the repository has more than one remote and `git config remote.pushDefault` is unset, pass `--remote origin` to every `gh stack push`, `gh stack submit`, and `gh stack rebase`, and say in the proposal that `gh stack checkout` needs `remote.pushDefault` set to `origin`; set it only with the user's approval.
 
-**The stack has changed on GitHub:** if the user asks to update the remaining PRs, or this skill starts while a stack it opened has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, go to [Keep the stack up to date](#keep-the-stack-up-to-date).
+**The stack has changed on GitHub:** if the user asks to update the remaining PRs, or this skill starts while a stack it opened (see [Finding the stack](#propose-a-stack)) has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, go to [Keep the stack up to date](#keep-the-stack-up-to-date).
 
 **Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written from `gh stack view --json` and `git` (commits, check results, how far the default branch has moved, and each PR's link and state, open, queued, merged, or closed, in the **PR** column once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
 
@@ -27,7 +27,9 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **GitHub unavailable:** distinguish a missing GitHub remote from an authentication or network failure, say which, and propose from the local docs only. Do not publish without GitHub.
 
-**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` is the bottom branch's name with each `/` replaced by `-`, so a later session can find the folder from the bottom branch that `gh stack view --json` shows: the review request (`review.md`) and each PR's body (`body-<position>.md`). Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks go in the scratchpad.
+**Finding the stack:** `gh stack view --json` reads only the stack of the checked-out branch and exits with code 2 when that branch is in none, such as on the default branch or on the review branch. Then look for the folders in `.agents/propose-stack/`: each is named after its stack's bottom branch (see below). While the review branch is checked out (steps 5 and 6), the PR branches do not change, so take their state from `git` and the saved `review.md`. Otherwise, if the working tree is clean, run `gh stack checkout <bottom branch>` and say which branch you switched from; if it is not clean, stop and ask.
+
+**Working files:** everything this skill writes goes in `.agents/propose-stack/<summary>/` in the worktree that holds the stack, where `<summary>` is the bottom branch's name with each `/` replaced by `-`, so a later session can find the folder from the bottom branch that `gh stack view --json` shows (it keeps merged branches, marked `isMerged`): the review request (`review.md`) and each PR's body (`body-<position>.md`). The review branch is `propose-stack/review-<summary>`; it is local only and never pushed. Keep the folder out of Git without ignoring the rest of `.agents/`: if `git ls-files .agents/propose-stack` lists anything, stop and ask where to write; otherwise, before the first write, add `/.agents/propose-stack/` to `info/exclude` in the Git common directory if it is missing, and confirm with `git check-ignore`. Only the temporary worktrees used for checks and trial folds go in the scratchpad.
 
 ## 1. Gather context
 
@@ -91,17 +93,36 @@ Write each PR's title and body following [the rules below](#title-and-body), the
 
 Save each PR's body as `body-<position>.md` and the filled-in review request as `review.md` in the working files, replacing any earlier versions. Give `review.md`'s path in the reply.
 
+Then create the review branch on top of the top PR branch: `git switch -c propose-stack/review-<summary> <top branch>`. Use plain `git`, not `gh stack add`: the review branch is not a layer, and `gh stack push` and `gh stack submit` must never push it.
+
 Ask for feedback and stop.
 
-## 6. Apply feedback and final review
+## 6. Collect feedback on the review branch
 
-- Put each fix in the PR it belongs to: check out that branch (`gh stack checkout <branch>`), commit the fix there, then run `gh stack rebase --upstack --no-trunk` to carry it into every branch above. `--no-trunk` keeps the stack on its reviewed base: without it, the rebase fetches and, when the fix is on the bottom branch, moves the stack onto a newer default branch. Nothing is pushed yet, so rewriting the branches is safe.
-- Repeat the checks (step 4) for every changed branch and every branch above it. Update the titles and body files.
-- Show the same review as step 5, plus what changed for each piece of feedback in the template's **Changes since last review** section. Save it over the same review file.
+Review feedback can change a lot, so fixes collect on the review branch and are folded into the PRs once, in step 7. The PR branches do not change during this step.
 
-Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, repeat this step.
+- Commit each fix on the review branch as a fixup of a commit in the PR it belongs to: `git commit -m "fixup! $(git rev-parse <commit>)"`, where `<commit>` is that PR's commit the fix changes, or its last commit. Name the commit by its full hash, not with `--fixup`, which names it by subject: when two commits in the stack share a subject, the fold would squash the fix into the first one, possibly in another PR. Each fix commit belongs to one PR; split a fix that touches two. Follow the [commit](../commit/SKILL.md) skill for staging and checks; the `fixup!` subjects disappear when the fixes are folded in.
+- A fix is written on top of every PR, so it can accidentally depend on code from a PR above the one it belongs to. Make it use only code in its own PR or below, and say in the review when that is unclear.
+- Run the checks (step 4) on the review branch's tip.
+- **Trial fold:** when this round has fixes for any PR below the top, fold them in a temporary detached worktree of the review branch's tip in the scratchpad: `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --no-update-refs <base>`. Always pass `--no-update-refs`: with `rebase.updateRefs` set in the user's Git config, the trial would otherwise move the real PR branches. Folding removes only the fix commits, so PR k's new last commit is the commit at position (PR 1's commit count + … + PR k's commit count) in `git rev-list --reverse <base>..HEAD`; run the checks there, and remove the worktree. Report any conflict or failure in the review with the PR it belongs to.
+- Show the same review as step 5, with each PR's planned fixes, the trial fold's results, and what changed for each piece of feedback in the template's **Changes since last review** section. Update the titles and body files. Save it over the same review file.
 
-## 7. Publish and verify
+Ask for more feedback, or whether the review is done, and stop. If the user gives more feedback, repeat this step. If the user had no feedback at all, skip to step 7 and its question.
+
+## 7. Fold the fixes and publish
+
+### Fold the fixes into their PRs
+
+- Before folding, record the review branch's tree (`git rev-parse <review branch>^{tree}`), and check with `git worktree list` that no PR branch is checked out in another worktree; `--update-refs` skips branches checked out elsewhere. If one is, stop and ask.
+- On the review branch, run `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --update-refs <base>`, where `<base>` is the stack's base commit from `review.md`. It moves each fix next to its commit, squashes it in, and moves every PR branch to its rewritten last commit, without moving the stack onto a newer default branch. Nothing is pushed yet, so rewriting the branches is safe.
+- On a conflict, resolve the files, stage them with `git add`, and run `git rebase --continue`; stop and ask about any conflict that needs a decision. `git rebase --abort` restores the review branch and every PR branch.
+- Check that the top PR branch now has the recorded tree (`git rev-parse <top branch>^{tree}`) and that `git log <base>..<top branch>` lists no `fixup!` commits; if either fails, stop and show the difference. Then run `gh stack checkout <top branch>`, check that `gh stack view --json` marks no branch with `needsRebase` (if it does, run `gh stack rebase --no-trunk`), and delete the review branch with `git branch -d`.
+- Repeat the checks (step 4) for every branch. Update the titles and body files from each PR's folded commits.
+- Show the final review as in step 5, with each PR's new commit range and what folding changed. Save it over the same review file.
+
+Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
+
+### Publish and verify
 
 - Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches and none of them exists on the remote yet (`git ls-remote --heads origin <branch>` prints nothing). `gh stack push` force-pushes with a lease, so it would overwrite a remote branch of the same name; if one exists, stop and ask. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
 - Push every branch with `gh stack push`.

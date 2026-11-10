@@ -13,7 +13,7 @@ Base `[short hash]`; `[default]` has moved [K] commits since.
 
 ## Changes since last review
 
-[Step 6 only.]
+[Steps 6 and 7 only: each round's feedback, and what folding the fixes changed.]
 
 - [Feedback]: [what changed, and in which PR]
 
