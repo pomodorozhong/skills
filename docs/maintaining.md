@@ -39,6 +39,7 @@ The links depend on the repository's location. If you move it, run `scripts/link
 - **Edit:** change the files in place, then commit and push. The agents use the edit right away.
 - **Add:** create `skills/<name>/SKILL.md`, then run `scripts/link.sh`.
 - **Remove:** delete the skill's folder, then run `scripts/link.sh` to remove its links.
+- **Dependencies between skills:** don't add or remove one without proposing it first; see [the rule for agents](../AGENTS.md#skill-dependencies).
 - **Sync from another machine:** `git pull`. Run `scripts/link.sh` too if skills were added or removed.
 
 ## Keep `main` checked out
