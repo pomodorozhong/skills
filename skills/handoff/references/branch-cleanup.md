@@ -1,6 +1,6 @@
 # Branch cleanup
 
-Every wrap-up sorts the local branches, deletes the stale ones that are safe to lose, and asks once about the rest. [Step 3 of the skill](../SKILL.md#3-update-handoffmd) says what needs approval.
+Every wrap-up sorts the local branches, deletes the stale ones that are safe to lose, and asks once about the rest. [Step 4 of the skill](../SKILL.md#4-clean-up-branches) says what needs approval.
 
 Do not use `git branch --merged`. A squash merge puts a branch's changes on the default branch as one new commit, so the branch never looks merged to Git.
 
