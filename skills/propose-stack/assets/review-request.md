@@ -1,4 +1,4 @@
-## Review request: [N] PRs on `[stack branch]`
+## Review request: a stack of [N] PRs
 
 Base `[short hash]`; `[default]` has moved [K] commits since.
 
@@ -6,14 +6,14 @@ Base `[short hash]`; `[default]` has moved [K] commits since.
 
 ## Branches
 
-| # | Branch | Title | Issue | Depends on | Commits | Checks (rebuilt on `[default]`) |
-|---|--------|-------|-------|------------|---------|---------------------------------|
-| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | None | `[first]..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] |
-| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | 1 | `[first]..[last]` ([count]) | [check] ✅ |
+| # | Branch | Title | Issue | Commits | Checks | PR |
+|---|--------|-------|-------|---------|--------|----|
+| 1 | `[branch]` | [title] | Closes [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ [check] ❌ [failure] [check] ⏭️ [reason] | Not opened yet |
+| 2 | `[branch]` | [title] | Related to [#[N] [issue title]](https://github.com/[owner]/[repo]/issues/[N]) | `[first]^..[last]` ([count]) | [check] ✅ | [#[N] [PR title]](https://github.com/[owner]/[repo]/pull/[N]) open / queued / merged / closed |
 
 ## Changes since last review
 
-[Step 6 only.]
+[Steps 6 and 7 only: each round's feedback, and what folding the fixes changed.]
 
 - [Feedback]: [what changed, and in which PR]
 
@@ -32,8 +32,7 @@ Most important first.
 ### [#]. [title]
 
 ```bash
-git worktree add --detach [scratchpad]/pr-[#] [base]
-git -C [scratchpad]/pr-[#] cherry-pick [prerequisite commits] [own commits]
+git worktree add --detach [scratchpad]/pr-[#] [branch]
 [command to run]
 ```
 
@@ -41,9 +40,9 @@ Look at: [what to check, most important first].
 
 ## PR bodies (exact text)
 
-### 1. [title]
+[In the saved `review.md`, each body is the path of its `body-<position>.md` file; in the reply, its full text.]
 
-Commits: `[short hash]` [subject], `[short hash]` [subject]
+### 1. [title]
 
 ````markdown
 [body]
@@ -52,5 +51,3 @@ Commits: `[short hash]` [subject], `[short hash]` [subject]
 ### 2. [title]
 
 [Same as above.]
-
-[Question: step 5 asks for feedback; step 6 asks "Push these N branches and open the PRs?"]
