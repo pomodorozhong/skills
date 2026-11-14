@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Project Defaults"
+  short_description: "Prefer npm tooling and Tailwind CSS for web projects"
+  default_prompt: "Use $web-project-defaults to set up or update this web project with npm-first tooling and Tailwind CSS."
