@@ -1,6 +1,6 @@
 ---
 name: web-project-defaults
-description: Apply npm-first tooling and Tailwind CSS defaults when creating, configuring, or maintaining web projects, such as a frontend app, a static site, or a project with a `package.json` (Vite, React, Next.js, and similar). Use when package management, build scripts, local serving, or styling choices are in scope and the user has not requested a conflicting stack.
+description: Apply npm-first tooling, Tailwind CSS, and project layout defaults when creating, configuring, or maintaining web projects, such as a frontend app, a static site, or a project with a `package.json` (Vite, React, Next.js, and similar). Use when package management, build scripts, local serving, styling, or file organization choices are in scope and the user has not requested a conflicting stack.
 ---
 
 # Web Project Defaults
@@ -21,5 +21,7 @@ Use Tailwind CSS as the default styling system for new projects, or when the use
 - Prefer Tailwind utilities for layout, spacing, typography, responsive behavior, and interaction states.
 - Keep custom CSS when it materially improves clarity or is needed for bespoke geometry, animation, browser behavior, or third-party integration.
 - Avoid CDN-based Tailwind in maintained projects unless the user specifically requests a no-build prototype.
+
+Organize files as [the project layout guide](references/project-layout.md) describes: follow the existing and framework layouts first, avoid both flat folders and deep nesting, and propose any reorganization before moving files. Read it before creating a project or adding files or folders.
 
 After setup or changes, run the relevant npm build and checks. When serving behavior changes, start the npm server in the background, verify that the page and generated assets respond successfully, and then stop the server unless the user wants it left running.
