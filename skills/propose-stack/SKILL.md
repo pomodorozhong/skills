@@ -21,7 +21,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **Merging, or the stack has changed on GitHub:** if the user asks to merge the stack or part of it, or to update the remaining PRs, or this skill starts while a stack it opened (see [Finding the stack](#propose-a-stack)) has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, read and follow [the update reference](references/update-stack.md).
 
-**Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), reply by filling in [the review request template](assets/review-request.md) with the stack's current state. Start from the saved `review.md` when there is one, but refresh anything that has changed since it was written from `gh stack view --json` and `git` (commits, check results, how far the default branch has moved, and each PR's link and state, open, queued, merged, or closed, in the **PR** column once published), and save the refreshed version over it. Fill in only what exists so far: before step 5, mark the sections that come later as not yet reached rather than inventing them. Showing the overview answers no open question; end with whatever request is still open.
+**Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), read and follow [the overview reference](references/overview.md).
 
 **Same repository only:** GitHub stacks need every branch in the repository the PRs target; cross-fork stacks are not supported. If the branches would be pushed to a fork of the repository the PRs target, say so and stop before proposing.
 
@@ -72,32 +72,15 @@ Stop and wait for answers and "go". Apply precise edits without asking again; sh
 
 ## 3. Build the stack
 
-- Fetch, then fast-forward the local default branch to `origin/<default>`, because `gh stack init` builds on the local branch: `git fetch origin <default>:<default>`, or `git merge --ff-only origin/<default>` where it is checked out. If it cannot fast-forward, stop and ask. Then run `git config rerere.enabled true` and start the stack with `gh stack init --base <default> <first branch>`. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
-- Build the PRs in order: commit each PR's work on its own branch, then `gh stack add <next branch>` to start the next one on top.
-- Implement the approved plan only. If the plan turns out wrong (a PR is much bigger than expected, or needs a PR above it), stop and ask before changing the plan.
+Once the user says "go", read [the build and review reference](references/build-and-review.md) and follow its steps 3 to 5. In short: fast-forward the local default branch, turn on `git rerere`, and build each PR on its own branch with `gh stack init` and `gh stack add`, implementing the approved plan only. If the plan turns out wrong, stop and ask before changing it.
 
 ## 4. Check each layer
 
-Check that each PR works with only the PRs below it before showing it for review:
-
-- For each branch, bottom first, check out its tip in a temporary detached worktree in the scratchpad, run the project's checks, and note the results for the review. Remove the worktree afterwards. The separate worktree makes the checks see only the committed tip, not uncommitted fixes or untracked files left in the stack's worktree.
-- If a branch fails its checks, fix it on that branch. If it fails because it needs something from a PR above it that the plan missed, stop and report it with a proposed fix: move the shared piece lower, or reorder the stack.
+Check each branch, bottom first, at its committed tip in a temporary detached worktree, so each PR is shown to work with only the PRs below it.
 
 ## 5. Review request
 
-Write each PR's title and body following [the rules below](#title-and-body), then show the following, filling in [the review request template](assets/review-request.md):
-
-- The stack's base commit (`git merge-base origin/<default> <bottom branch>`), and how far the default branch has moved since (`git rev-list --count <base>..origin/<default>`).
-- For each PR, in stack order from the bottom: its title, branch, commit range and count, the check results (including failed, skipped, or not run), and full body.
-- **Review steps:** how to try each PR (check out its branch in a detached worktree, then the commands to run and what to look at).
-- **Details to check:** choices made while building that the plan did not settle and that could plausibly differ from the user's goal or taste, such as names, wording users will see, defaults, error behavior, file layout, and scope moved between PRs. For each, say what you chose and the main alternative.
-- Differences from the approved plan.
-
-Save each PR's body as `body-<position>.md` and the filled-in review request as `review.md` in the working files, replacing any earlier versions. Give `review.md`'s path in the reply.
-
-Then create the review branch on top of the top PR branch: `git switch -c propose-stack/review-<summary> <top branch>`. Use plain `git`, not `gh stack add`: the review branch is not a layer, and `gh stack push` and `gh stack submit` must never push it.
-
-Ask for feedback and stop.
+Write each PR's title and body, fill in [the review request template](assets/review-request.md), save it and the bodies in the working files, and create the local review branch `propose-stack/review-<summary>` on top of the top PR branch with plain `git`. Ask for feedback and stop.
 
 ## 6. Collect feedback on the review branch
 
@@ -108,12 +91,3 @@ Before committing the first fix, read [the fold and publish reference](reference
 Follow step 7 of [the fold and publish reference](references/fold-and-publish.md), reading it first if this session has not. In short: fold the fixes into their PRs with `git rebase --autosquash --update-refs`, check every branch again, and show the final review. Ask: "Push these N branches and open the PRs?", naming the delete-branch-on-merge setting change too if it was approved, and stop. Only after that approval, turn on the setting if it was approved, push with `gh stack push`, open each PR with its approved title and body, group them with `gh stack submit --auto`, and check the result on GitHub.
 
 Opening the PRs does not authorize merging, force-pushing, or further changes. For merging, and for keeping the stack up to date after a PR merges or the default branch moves ahead, read [the update reference](references/update-stack.md).
-
-## Title and body
-
-Use the repository's PR template if it has one; otherwise fill in [the PR body template](assets/pr-body.md).
-
-- **Title:** the concrete change in Conventional Commit style when that fits the repo. No issue references or positions in the title.
-- **Body:** written for a reviewer who has not seen the conversation, from that PR's own commits and real results only. Never invent results or issue links.
-- **Verification:** list commands actually run on that PR's branch and their outcomes, separately from checks not run and why. For user-visible changes, give reproducible steps with expected results, and mark which you ran (`Verified`) and which are left to the reviewer (`Reviewer follow-up`).
-- **Issues:** each PR closes its own issue with `Closes #N` when it fully resolves it. GitHub links a closing keyword only while the PR targets the default branch, and closes the issue when that PR merges into it; a PR above the bottom targets another branch until the PRs below it merge. Use `Related to #N` with the relationship when a PR covers only part of an issue. Never close another PR's issue. Use `owner/repo#N` for other repositories. See [GitHub's linking rules](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue).
