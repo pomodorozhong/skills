@@ -19,7 +19,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 **The remote:** this skill calls the remote the PRs target `origin`; if it has another name, use that. If the repository has more than one remote and `git config remote.pushDefault` is unset, pass `--remote origin` to every `gh stack push`, `gh stack submit`, and `gh stack rebase`, and say in the proposal that `gh stack checkout` needs `remote.pushDefault` set to `origin`; set it only with the user's approval.
 
-**Merging, or the stack has changed on GitHub:** if the user asks to merge the stack or part of it, or to update the remaining PRs, or this skill starts while a stack it opened (see [Finding the stack](#propose-a-stack)) has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, read and follow [the update reference](references/update-stack.md).
+**Merging, or the stack has changed on GitHub:** if the user asks to merge the stack or part of it, or to update the remaining PRs, or this skill starts while a stack it opened (see **Finding the stack** below) has a merged PR or a branch that `gh stack view --json` marks with `needsRebase`, read and follow [the update reference](references/update-stack.md).
 
 **Stack overview:** if the user asks to see the stack, its overview, status, or where things stand ("show me the stack overview"), read and follow [the overview reference](references/overview.md).
 
@@ -84,7 +84,7 @@ Write each PR's title and body, fill in [the review request template](assets/rev
 
 ## 6. Collect feedback on the review branch
 
-Before committing the first fix, read [the fold and publish reference](references/fold-and-publish.md) and follow its step 6. In short: commit each fix on the review branch as a `fixup!` of a commit in the PR it belongs to, leave the PR branches unchanged, check the review branch's tip and a trial fold, and show the updated review. Ask for more feedback, or whether the review is done, and stop. If the user had no feedback at all, there is nothing to fold: run `gh stack checkout <top branch>`, delete the review branch with `git branch -d`, and ask step 7's push question.
+Before acting on the user's answer to any review round, read [the fold and publish reference](references/fold-and-publish.md) if this session has not, and follow its step 6. In short: commit each fix on the review branch as a `fixup!` of a commit in the PR it belongs to, naming that commit by its full hash rather than with `git commit --fixup`, leave the PR branches unchanged, check the review branch's tip and a trial fold run with `--no-update-refs`, and show the updated review. Ask for more feedback, or whether the review is done, and stop. If the user had no feedback at all, follow the reference's no-feedback path and ask step 7's push question.
 
 ## 7. Fold the fixes and publish
 

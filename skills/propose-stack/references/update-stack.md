@@ -4,7 +4,7 @@ Read this when the user asks to merge the stack or part of it, asks to update th
 
 ## Merge
 
-Opening the PRs does not authorize merging, force-pushing, or further changes. If the user asks to merge, use `gh stack merge <PR number> --yes` with the merge method the user names (`--squash`, `--merge`, or `--rebase`; without one it reuses the last-used method). It merges that PR and every unmerged PR below it, all or nothing; `gh pr merge` cannot merge a stack, and stacked PRs support neither auto-merge nor bypassing merge rules. If the default branch uses a merge queue, the PRs are queued instead and the queue picks the method.
+Merge only when the user asks (see step 7 of [SKILL.md](../SKILL.md)). If the user asks to merge, use `gh stack merge <PR number> --yes` with the merge method the user names (`--squash`, `--merge`, or `--rebase`; without one it reuses the last-used method). It merges that PR and every unmerged PR below it, all or nothing; `gh pr merge` cannot merge a stack, and stacked PRs support neither auto-merge nor bypassing merge rules. If the default branch uses a merge queue, the PRs are queued instead and the queue picks the method.
 
 After a merge, check the result: `gh stack view --json` marks each merged branch `isMerged`, and every issue a merged PR's body closes is closed. Report any issue left open and propose closing it; close it only with the user's approval. If PRs remain open, continue with [Keep the stack up to date](#keep-the-stack-up-to-date) from its first step, which also catches what the merge queue has not merged yet; if every PR has merged, go to its **Clean up** step.
 

@@ -1,6 +1,6 @@
 # Collect feedback, fold, and publish
 
-Read this before acting on the user's answer to the review request (step 5 of [SKILL.md](../SKILL.md)): before committing the first fix in step 6, or before step 7's push question when the user had no feedback. The rules in SKILL.md still apply, including the working files; so do [the review request template](../assets/review-request.md) and [the title and body rules](build-and-review.md#title-and-body).
+Read this before acting on the user's answer to the review request (step 5 of [SKILL.md](../SKILL.md)) or to any later review round, if this session has not read it yet: before committing a fix in step 6, or before step 7's push question when the user had no feedback. The rules in SKILL.md still apply, including the working files; so do [the review request template](../assets/review-request.md) and [the title and body rules](build-and-review.md#title-and-body).
 
 ## 6. Collect feedback on the review branch
 
@@ -22,15 +22,15 @@ Ask for more feedback, or whether the review is done, and stop. If the user give
 - On the review branch, run `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --update-refs <base>`, where `<base>` is the stack's base commit from `review.md`. It moves each fix next to its commit, squashes it in, and moves every PR branch to its rewritten last commit, without moving the stack onto a newer default branch. Nothing is pushed yet, so rewriting the branches is safe.
 - On a conflict, resolve the files, stage them with `git add`, and run `git rebase --continue`; stop and ask about any conflict that needs a decision. `git rebase --abort` restores the review branch and every PR branch.
 - Check that the top PR branch now has the recorded tree (`git rev-parse <top branch>^{tree}`) and that `git log <base>..<top branch>` lists no `fixup!` commits; if either fails, stop and show the difference. Then run `gh stack checkout <top branch>`, check that `gh stack view --json` marks no branch with `needsRebase` (if it does, run `gh stack rebase --no-trunk`), and delete the review branch with `git branch -d`.
-- Repeat the checks (step 4) for every branch. Update the titles and body files from each PR's folded commits.
-- Show the final review as in step 5, with each PR's new commit range and what folding changed. Save it over the same review file.
+- Repeat the checks ([step 4](build-and-review.md#4-check-each-layer)) for every branch. Update the titles and body files from each PR's folded commits.
+- Show the final review as in [step 5](build-and-review.md#5-review-request), with each PR's new commit range and what folding changed. Save it over the same review file.
 
-Ask: "Push these N branches and open the PRs?", naming the setting change too if it was approved, and stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
+Ask: "Push these N branches and open the PRs?", and if the user approved turning on delete-branch-on-merge when answering the plan (step 2 of [SKILL.md](../SKILL.md)), name that setting change in the question too, since it changes the repository for every PR and needs that separate yes. Stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
 
 ### Publish and verify
 
 - Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches and none of them exists on the remote yet (`git ls-remote --heads origin <branch>` prints nothing). `gh stack push` force-pushes with a lease, so it would overwrite a remote branch of the same name; if one exists, stop and ask. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
-- If the user approved turning on delete-branch-on-merge in the plan, turn it on first with `gh api -X PATCH repos/<owner>/<repo> -f delete_branch_on_merge=true` and check that it reads back `true`. If the call fails, such as without admin rights, report it and go on; the branches then stay on the remote until the clean-up.
+- If the user approved turning on delete-branch-on-merge when answering the plan (step 2 of [SKILL.md](../SKILL.md)), turn it on first with `gh api -X PATCH repos/<owner>/<repo> -f delete_branch_on_merge=true` and check that it reads back `true`. If the call fails, such as without admin rights, report it and go on; the branches then stay on the remote until the clean-up.
 - Push every branch with `gh stack push`.
 - Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. `gh stack submit --auto` would write its own titles and bodies, so the PRs are opened first. Add no labels, reviewers, or comments that were not shown.
 - Check that every branch now has its open PR (`gh pr list --head <branch>`), then group them into a stack on GitHub with `gh stack submit --auto`. It finds the open PRs, so it creates none, keeps them ready for review, links them as a stack, and records each PR in the local stack. Do not use `gh stack link`, which is for branches managed by other tools and records nothing locally. If grouping fails, report it and leave the PRs open; exit code 9 means stacked PRs are not turned on for the repository, so the PRs stay an ordinary chain of PRs, each based on the one below.
@@ -38,4 +38,4 @@ Ask: "Push these N branches and open the PRs?", naming the setting change too if
 - Reply with every PR and the state of its checks, say that the PRs are open for review rather than drafts, and say that the stack must be rebased before it can merge whenever the default branch moves ahead of it.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
-Opening the PRs does not authorize merging, force-pushing, or further changes. For merging and keeping the stack up to date afterwards, read [the update reference](update-stack.md).
+For merging and keeping the stack up to date afterwards, follow step 7 of [SKILL.md](../SKILL.md) and read [the update reference](update-stack.md).
