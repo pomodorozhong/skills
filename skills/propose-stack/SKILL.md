@@ -40,6 +40,7 @@ Read, and change nothing:
 - Milestones and their descriptions: what each is for, what it waits on, and its due date.
 - Open PRs and remote branches, so the proposal does not repeat work already in flight. `gh stack view --json` shows only the stack of the checked-out branch, and exits with code 2 when that branch is in none; list the repository's other stacks with `gh api repos/<owner>/<repo>/stacks`.
 - Whether stacked PRs are turned on for the repository: the same `gh api repos/<owner>/<repo>/stacks` call returns `404 Not Found` when they are not.
+- Whether GitHub deletes a PR's branch when the PR merges: `gh api repos/<owner>/<repo> --jq .delete_branch_on_merge`.
 - Recent history on the default branch (`git log --oneline -30`), after fetching it.
 
 If a search or listing fails, say so instead of claiming there is nothing.
@@ -64,6 +65,7 @@ Then show:
 - Assumptions.
 - That the build turns on `git rerere` (Git remembers how conflicts were resolved) in this repository's local Git config, as `gh stack init` requires.
 - Whether stacked PRs are turned on for the repository on GitHub. If they are not, say that the PRs can still be opened as an ordinary chain of PRs, each based on the one below, but GitHub will not show or merge them as a stack.
+- If `delete_branch_on_merge` is `false`, a question recommending turning on **Automatically delete head branches**, so GitHub deletes each remote branch as its PR merges. The setting covers every PR in the repository, not just this stack. Changing a repository setting is outward-facing and needs its own yes, separate from the push approval; say nothing about the setting when it is already on.
 - **Questions:** three to five, only about choices that are costly to change once built: public APIs and names, data and file formats, new dependencies, scope boundaries between PRs, stack order, and behavior users will rely on. Give your recommended answer for each. Skip anything cheap to change during review.
 
 Stop and wait for answers and "go". Apply precise edits without asking again; show the revised plan for substantive ones.
@@ -120,11 +122,12 @@ Ask for more feedback, or whether the review is done, and stop. If the user give
 - Repeat the checks (step 4) for every branch. Update the titles and body files from each PR's folded commits.
 - Show the final review as in step 5, with each PR's new commit range and what folding changed. Save it over the same review file.
 
-Ask: "Push these N branches and open the PRs?" and stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
+Ask: "Push these N branches and open the PRs?", naming the setting change too if it was approved, and stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
 
 ### Publish and verify
 
 - Immediately before publishing, confirm each branch tip still matches the last commit listed for it in the approved `review.md`, and that no PR exists for any of the branches and none of them exists on the remote yet (`git ls-remote --heads origin <branch>` prints nothing). `gh stack push` force-pushes with a lease, so it would overwrite a remote branch of the same name; if one exists, stop and ask. Any change needs a new approval. Do not rebase onto a newer default branch here; that changes what was approved.
+- If the user approved turning on delete-branch-on-merge in the plan, turn it on first with `gh api -X PATCH repos/<owner>/<repo> -f delete_branch_on_merge=true` and check that it reads back `true`. If the call fails, such as without admin rights, report it and go on; the branches then stay on the remote until the clean-up.
 - Push every branch with `gh stack push`.
 - Open each PR bottom first with `gh pr create --base <branch below> --head <branch> --title "<approved title>" --body-file <working files>/body-<position>.md`, which holds the exact approved body. `gh stack submit --auto` would write its own titles and bodies, so the PRs are opened first. Add no labels, reviewers, or comments that were not shown.
 - Check that every branch now has its open PR (`gh pr list --head <branch>`), then group them into a stack on GitHub with `gh stack submit --auto`. It finds the open PRs, so it creates none, keeps them ready for review, links them as a stack, and records each PR in the local stack. Do not use `gh stack link`, which is for branches managed by other tools and records nothing locally. If grouping fails, report it and leave the PRs open; exit code 9 means stacked PRs are not turned on for the repository, so the PRs stay an ordinary chain of PRs, each based on the one below.
@@ -146,7 +149,7 @@ When PRs at the bottom merge (merging a PR also lands every unmerged PR below it
 4. **Approval:** for each rebased PR, show the old and new tip, the commits now on the branch, the check results, and the conflicts resolved. Ask: "Force-push these N branches?" and stop.
 5. **Publish:** push with `gh stack push`, whose per-branch `--force-with-lease` refuses to overwrite a branch that changed on the remote since the rebase fetched it.
 6. **Verify:** check each PR's tip, base, and diff, and that `gh stack view --json` marks no branch with `needsRebase`, and reply with the PRs.
-7. **Clean up:** once every PR in the stack has merged, propose `gh stack unstack --local` and deleting the local branches and the working files; do it only with the user's approval.
+7. **Clean up:** once every PR in the stack has merged, propose `gh stack unstack --local` and deleting the local branches and the working files. Also list each merged PR's branch still on the remote (`git ls-remote --heads origin <branch>` prints it), and propose `git push origin --delete <branch>` for each. Keep the local branches until this step so the user can still look at them; `gh stack` itself does not need them, since its stack record keeps merged branches and their last commits after the local branches are deleted. Do each only with the user's approval.
 
 ## Title and body
 
