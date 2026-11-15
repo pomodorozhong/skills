@@ -72,11 +72,14 @@ Stop and wait for answers and "go". Apply precise edits without asking again; sh
 
 ## 3. Build the stack
 
-Once the user says "go", read [the build and review reference](references/build-and-review.md) and follow its steps 3 to 5. In short: fast-forward the local default branch, turn on `git rerere`, and build each PR on its own branch with `gh stack init` and `gh stack add`, implementing the approved plan only. If the plan turns out wrong, stop and ask before changing it.
+Once the user says "go", read [the build and review reference](references/build-and-review.md) and follow its steps 3 and 5, with step 4 below between them. In short: fast-forward the local default branch, turn on `git rerere`, and build each PR on its own branch with `gh stack init` and `gh stack add`, implementing the approved plan only. If the plan turns out wrong, stop and ask before changing it.
 
 ## 4. Check each layer
 
-Check each branch, bottom first, at its committed tip in a temporary detached worktree, so each PR is shown to work with only the PRs below it.
+Check that each PR works with only the PRs below it before showing it for review:
+
+- For each branch, bottom first, check out its tip in a temporary detached worktree in the scratchpad, run the project's checks, and note the results for the review. Remove the worktree afterwards. The separate worktree makes the checks see only the committed tip, not uncommitted fixes or untracked files left in the stack's worktree.
+- If a branch fails its checks, fix it on that branch. If it fails because it needs something from a PR above it that the plan missed, stop and report it with a proposed fix: move the shared piece lower, or reorder the stack.
 
 ## 5. Review request
 
@@ -84,10 +87,10 @@ Write each PR's title and body, fill in [the review request template](assets/rev
 
 ## 6. Collect feedback on the review branch
 
-Before acting on the user's answer to any review round, read [the fold and publish reference](references/fold-and-publish.md) if this session has not, and follow its step 6. In short: commit each fix on the review branch as a `fixup!` of a commit in the PR it belongs to, naming that commit by its full hash rather than with `git commit --fixup`, leave the PR branches unchanged, check the review branch's tip and a trial fold run with `--no-update-refs`, and show the updated review. Ask for more feedback, or whether the review is done, and stop. If the user had no feedback at all, follow the reference's no-feedback path and ask step 7's push question.
+Before acting on the user's answer to any review round, read [the fold and publish reference](references/fold-and-publish.md) if this session has not, and follow its step 6, which collects the fixes on the review branch and leaves the PR branches unchanged. Ask for more feedback, or whether the review is done, and stop. If the user had no feedback at all, follow the reference's no-feedback path.
 
 ## 7. Fold the fixes and publish
 
-Follow step 7 of [the fold and publish reference](references/fold-and-publish.md), reading it first if this session has not. In short: fold the fixes into their PRs with `git rebase --autosquash --update-refs`, check every branch again, and show the final review. Ask: "Push these N branches and open the PRs?", naming the delete-branch-on-merge setting change too if it was approved, and stop. Only after that approval, turn on the setting if it was approved, push with `gh stack push`, open each PR with its approved title and body, group them with `gh stack submit --auto`, and check the result on GitHub.
+Follow step 7 of [the fold and publish reference](references/fold-and-publish.md), reading it first if this session has not. It folds the fixes into their PRs and shows the final review, then asks: "Push these N branches and open the PRs?", naming the delete-branch-on-merge setting change too if it was approved. Stop there; push, change the setting, or open PRs only after that approval.
 
 Opening the PRs does not authorize merging, force-pushing, or further changes. For merging, and for keeping the stack up to date after a PR merges or the default branch moves ahead, read [the update reference](references/update-stack.md).

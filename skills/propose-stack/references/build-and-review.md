@@ -10,10 +10,7 @@ Read this after the user approves the plan (step 2 of [SKILL.md](../SKILL.md)) a
 
 ## 4. Check each layer
 
-Check that each PR works with only the PRs below it before showing it for review:
-
-- For each branch, bottom first, check out its tip in a temporary detached worktree in the scratchpad, run the project's checks, and note the results for the review. Remove the worktree afterwards. The separate worktree makes the checks see only the committed tip, not uncommitted fixes or untracked files left in the stack's worktree.
-- If a branch fails its checks, fix it on that branch. If it fails because it needs something from a PR above it that the plan missed, stop and report it with a proposed fix: move the shared piece lower, or reorder the stack.
+Then check each layer as [step 4 of SKILL.md](../SKILL.md#4-check-each-layer) describes.
 
 ## 5. Review request
 

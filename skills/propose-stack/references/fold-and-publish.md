@@ -6,13 +6,15 @@ Read this before acting on the user's answer to the review request (step 5 of [S
 
 Review feedback can change a lot, so fixes collect on the review branch and are folded into the PRs once, in step 7. The PR branches do not change during this step.
 
+**No feedback:** if the user had no feedback at all, there is nothing to fold, so skip the fixes below and the fold in step 7: run `gh stack checkout <top branch>`, delete the review branch with `git branch -d`, and ask [step 7's push question](#ask-to-publish).
+
 - Commit each fix on the review branch as a fixup of a commit in the PR it belongs to: `git commit -m "fixup! $(git rev-parse <commit>)"`, where `<commit>` is that PR's commit the fix changes, or its last commit. Name the commit by its full hash, not with `--fixup`, which names it by subject: when two commits in the stack share a subject, the fold would squash the fix into the first one, possibly in another PR. Each fix commit belongs to one PR; split a fix that touches two. Follow the [commit](../../commit/SKILL.md) skill for staging and checks; the `fixup!` subjects disappear when the fixes are folded in.
 - A fix is written on top of every PR, so it can accidentally depend on code from a PR above the one it belongs to. Make it use only code in its own PR or below, and say in the review when that is unclear.
-- Run the checks ([step 4](build-and-review.md#4-check-each-layer)) on the review branch's tip.
+- Run the checks ([step 4](../SKILL.md#4-check-each-layer)) on the review branch's tip.
 - **Trial fold:** when this round has fixes for any PR below the top, fold them in a temporary detached worktree of the review branch's tip in the scratchpad: `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --no-update-refs <base>`. Always pass `--no-update-refs`: with `rebase.updateRefs` set in the user's Git config, the trial would otherwise move the real PR branches. Folding removes only the fix commits, so PR k's new last commit is the commit at position (PR 1's commit count + … + PR k's commit count) in `git rev-list --reverse <base>..HEAD`; run the checks there, and remove the worktree. On a conflict, note the conflicting files and the PR the fix belongs to, run `git rebase --abort` in the trial worktree, and then remove it; `git worktree remove` refuses while the rebase is in progress. Report any conflict or failure in the review with the PR it belongs to.
 - Show the same review as [step 5](build-and-review.md#5-review-request), with each PR's planned fixes, the trial fold's results, and what changed for each piece of feedback in the template's **Changes since last review** section. Update the titles and body files. Save it over the same review file.
 
-Ask for more feedback, or whether the review is done, and stop. If the user gives more feedback, repeat this step. If the user had no feedback at all, there is nothing to fold: run `gh stack checkout <top branch>`, delete the review branch with `git branch -d`, and ask step 7's push question.
+Ask for more feedback, or whether the review is done, and stop. If the user gives more feedback, repeat this step.
 
 ## 7. Fold the fixes and publish
 
@@ -22,8 +24,10 @@ Ask for more feedback, or whether the review is done, and stop. If the user give
 - On the review branch, run `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --update-refs <base>`, where `<base>` is the stack's base commit from `review.md`. It moves each fix next to its commit, squashes it in, and moves every PR branch to its rewritten last commit, without moving the stack onto a newer default branch. Nothing is pushed yet, so rewriting the branches is safe.
 - On a conflict, resolve the files, stage them with `git add`, and run `git rebase --continue`; stop and ask about any conflict that needs a decision. `git rebase --abort` restores the review branch and every PR branch.
 - Check that the top PR branch now has the recorded tree (`git rev-parse <top branch>^{tree}`) and that `git log <base>..<top branch>` lists no `fixup!` commits; if either fails, stop and show the difference. Then run `gh stack checkout <top branch>`, check that `gh stack view --json` marks no branch with `needsRebase` (if it does, run `gh stack rebase --no-trunk`), and delete the review branch with `git branch -d`.
-- Repeat the checks ([step 4](build-and-review.md#4-check-each-layer)) for every branch. Update the titles and body files from each PR's folded commits.
+- Repeat the checks ([step 4](../SKILL.md#4-check-each-layer)) for every branch. Update the titles and body files from each PR's folded commits.
 - Show the final review as in [step 5](build-and-review.md#5-review-request), with each PR's new commit range and what folding changed. Save it over the same review file.
+
+### Ask to publish
 
 Ask: "Push these N branches and open the PRs?", and if the user approved turning on delete-branch-on-merge when answering the plan (step 2 of [SKILL.md](../SKILL.md)), name that setting change in the question too, since it changes the repository for every PR and needs that separate yes. Stop. If the user gives more feedback, fix it on the PR's own branch (`gh stack checkout <branch>`, commit, then `gh stack rebase --upstack --no-trunk`), repeat the checks, and show the final review again.
 
@@ -38,4 +42,4 @@ Ask: "Push these N branches and open the PRs?", and if the user approved turning
 - Reply with every PR and the state of its checks, say that the PRs are open for review rather than drafts, and say that the stack must be rebased before it can merge whenever the default branch moves ahead of it.
 - If publishing fails partway, keep every local branch and the approved drafts, report what was pushed and opened, and keep the request open.
 
-For merging and keeping the stack up to date afterwards, follow step 7 of [SKILL.md](../SKILL.md) and read [the update reference](update-stack.md).
+For merging and keeping the stack up to date afterwards, read [the update reference](update-stack.md).
