@@ -1,0 +1,4 @@
+interface:
+  display_name: "macOS Application Storage"
+  short_description: "Apply native macOS storage conventions"
+  default_prompt: "Use $macos-application-data-storage to review or design this app's macOS file storage."
