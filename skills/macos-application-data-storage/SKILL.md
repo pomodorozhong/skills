@@ -5,19 +5,25 @@ description: "Design or review file storage for macOS apps: where app data, cach
 
 # macOS application data storage
 
-Use this skill when creating a macOS application, designing its storage model, or changing storage code in an existing application. Do not activate it for an unrelated feature that merely happens to read or write a file.
-
 ## Start with ownership and lifetime
 
 Classify every stored item before choosing a path:
 
 - User-owned content: recordings, documents, media, exports, and other files the user expects to find and manage. Keep these in the user-selected project/content location. Do not hide them in the app container just because the app created them.
 - Durable app-managed state: databases, job records, imported working copies, indexes that cannot be rebuilt from data the app still has, migrations, and other state needed by the app but not intended as user documents. Store it under the per-user Application Support directory.
-- Regenerable data: thumbnails, previews, waveform envelopes, and indexes that can be rebuilt from data the app still has. Store it under the per-user Caches directory and make deletion safe. The system may delete Caches contents when disk space runs low, so keep only data whose loss costs a rebuild, not a feature. Large downloads the app needs to work offline, such as models, belong in Application Support with an explicit way for the user to remove them.
+- Regenerable data: thumbnails, previews, waveform envelopes, and indexes that can be rebuilt from data the app still has. Store it under the per-user Caches directory and make deletion safe. The system may delete Caches contents when disk space runs low, so keep only data whose loss costs a rebuild, not a feature. Large downloads the app needs to work offline, such as models, belong in Application Support with an explicit way for the user to remove them. Exclude them from backups, because Time Machine backs up Application Support: set `URLResourceValues.isExcludedFromBackup` in a native app, or run `tmutil addexclusion` on the folder in a cross-platform app.
 - Logs: diagnostic logs under the per-user Logs directory, or use the platform's unified logging system for a native macOS app. Never treat logs as user documents.
 - Preferences: small settings only, using UserDefaults or the platform preferences mechanism. Do not put media, databases, caches, or job payloads in preferences. Read and write preferences only through that API: never edit the preference `.plist` files directly, because the system caches them and can overwrite or ignore direct edits.
 - Short-lived intermediates: use the system temporary directory for scratch files that never become user files, and clean them up when possible. Never use a repository `tmp/` directory as an application-wide temporary store.
-- Files being saved: write the new file completely on the same volume as its destination, then replace the destination in one rename, so an interrupted save leaves the previous version intact. A rename cannot cross volumes, so do not write in the system temporary directory and move the result to a user folder that may be on another drive. In a native app, use `Data.write(to:options: .atomic)`, `NSDocument`, or a directory from `FileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: destination, create: true)` with `FileManager.replaceItemAt(_:withItemAt:)`. In a cross-platform app, create the temporary file in the destination's directory, flush and `fsync` it, then `os.replace` it over the destination, and delete it if the save fails.
+- Files being saved: write the new file completely on the same volume as its destination, then replace the destination in one rename, so an interrupted save leaves the previous version intact. A rename cannot cross volumes, so do not write in the system temporary directory and move the result to a user folder that may be on another drive. In a native app, use `data.write(to: destination, options: .atomic)`, `NSDocument`, or a directory from `FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: destination, create: true)` with `FileManager.default.replaceItemAt(destination, withItemAt: newFile)`; `replaceItemAt` also keeps the original file's permissions, extended attributes, and Finder tags. In a cross-platform app:
+
+  1. Resolve the destination through any symlinks first, so the save replaces the real file instead of turning the link into a separate copy.
+  2. Create the temporary file in that resolved file's directory, write it, flush it, and `fsync` it.
+  3. Copy the original file's permissions and extended attributes (which hold Finder tags) onto the temporary file, because a rename gives the destination the temporary file's metadata.
+  4. Rename the temporary file over the destination with `os.replace` or `rename(2)`, then `fsync` the containing directory so the rename itself survives a power loss.
+  5. Delete the temporary file if any step fails.
+
+  A rename breaks hard links to the original file; if the app must keep them, write in place behind a backup copy instead.
 
 On macOS, the conventional roots are:
 
@@ -44,11 +50,12 @@ User-selected source and export paths are part of the project model, not disposa
 
 macOS asks the user for permission the first time an app reads or writes Documents, Desktop, Downloads, iCloud Drive, removable volumes, or network volumes, whether or not the app is sandboxed. If the user declines, later access fails with "operation not permitted" and the system does not ask again. Design for this:
 
-- Keep app-managed data out of these locations; Application Support, Caches, and Logs never need this permission.
+- Keep app-managed data out of these locations. The app's own folders in Application Support, Caches, and Logs never need this permission. Reading another app's data there or in `~/Library/Containers` does: since macOS 14 the system asks before an app reads data that belongs to other apps.
 - Let the user choose project and export locations with an open or save panel. A location chosen that way is granted without a separate prompt, so prefer it over a default inside Documents.
-- Touch a protected location only right after a user action that explains why, such as choosing a folder or starting an export, never from a background job.
-- Add the matching purpose strings to `Info.plist` (`NSDocumentsFolderUsageDescription`, `NSDesktopFolderUsageDescription`, `NSDownloadsFolderUsageDescription`, `NSRemovableVolumesUsageDescription`, `NSNetworkVolumesUsageDescription`) so the prompt says why the app asks.
-- Report a permission denial separately from other write errors: name the location, point to System Settings > Privacy & Security > Files and Folders, and offer to choose another location.
+- Make the first access to a protected location right after a user action that explains why, such as choosing a folder or starting an export, so any prompt appears while the user knows the reason. A background job may then keep using a location the user chose and the app already reached; it must not be the first to touch one, and must handle a denial without a prompt the user cannot see.
+- In a bundled app, add the matching purpose strings to `Info.plist` (`NSDocumentsFolderUsageDescription`, `NSDesktopFolderUsageDescription`, `NSDownloadsFolderUsageDescription`, `NSRemovableVolumesUsageDescription`, `NSNetworkVolumesUsageDescription`) so the prompt says why the app asks. iCloud Drive has no purpose string of its own.
+- A command-line tool or script that is not an app bundle has no `Info.plist`. macOS shows the prompt for, and saves the decision under, the app that launched it, such as Terminal, iTerm, or an IDE. Name that app when reporting a denial.
+- Report a permission denial separately from other write errors: name the location and the app that holds the permission, point to System Settings > Privacy & Security > Files and Folders, and offer to choose another location.
 
 ## Use one path policy
 
@@ -81,7 +88,7 @@ Before handing off storage work, verify that:
 - logs do not contain secrets or large payloads by default;
 - custom paths work with paths that contain spaces, on removable volumes, and in read-only failure cases;
 - an interrupted save leaves the previous version of the user's file intact, including when the destination is on another volume;
-- declining the privacy prompt for a protected location produces an actionable error, tested after `tccutil reset All <bundle-id>`;
+- declining the privacy prompt for a protected location produces an actionable error, tested after `tccutil reset All <bundle-id>` (for a command-line tool, the bundle ID of the app that launches it, such as `com.apple.Terminal`);
 - existing projects retain their recorded paths;
 - path resolution is testable without mutating the real home directory;
 - the implementation uses the host platform's conventions and does not assume macOS paths on other platforms.
