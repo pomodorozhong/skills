@@ -7,7 +7,7 @@ description: Turn a requested change into a GitHub PR with two approvals, a deta
 
 Turn a requested change into a GitHub PR with two approvals: the user approves a detailed plan before any work, then approves the finished branch before anything is pushed. Approving the plan never authorizes a push.
 
-Ask for each approval in chat and wait for a reply; silence is not approval. If the session ends before the user answers, keep the open request in the reply.
+Ask for each approval in chat and wait for a reply; silence is not approval. An unanswered request stays open: name it again in any later status or closing report until the user answers.
 
 **Already approved:** if the user already approved this exact branch tip and body (for example, in a recorded pending request), go straight to step 5.
 

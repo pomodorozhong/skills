@@ -7,7 +7,7 @@ description: Read a project's goals, plans, and progress (open issues, milestone
 
 Find the next few pieces of work from the project's own records, propose them as a set of PRs, and build them as a stack with the `gh stack` extension: each PR is its own branch built on the one below it, each PR targets the branch below it, and the bottom PR targets the default branch. GitHub shows the PRs as one stack and merges them bottom first. The user gives three answers before anything is pushed: the plan, review feedback on the built work, and the final publish approval. Approving the plan or giving feedback never authorizes a push.
 
-Ask for each answer in chat and wait for a reply; silence is not approval. If the session ends before the user answers, keep the open request in the reply.
+Ask for each answer in chat and wait for a reply; silence is not approval. An unanswered request stays open: name it again in any later status or closing report until the user answers.
 
 Show everything the user needs to decide (the plan, the questions, each PR's title and body, the review steps) in the closing message text of the turn, followed by the question. Never leave it above a box or panel that may hide it.
 
@@ -40,6 +40,7 @@ Read, and change nothing:
 - Milestones and their descriptions: what each is for, what it waits on, and its due date.
 - Open PRs and remote branches, so the proposal does not repeat work already in flight. `gh stack view --json` shows only the stack of the checked-out branch, and exits with code 2 when that branch is in none; list the repository's other stacks with `gh api repos/<owner>/<repo>/stacks`.
 - Whether stacked PRs are turned on for the repository: the same `gh api repos/<owner>/<repo>/stacks` call returns `404 Not Found` when they are not.
+- Whether GitHub deletes a PR's branch when the PR merges: `gh api repos/<owner>/<repo> --jq .delete_branch_on_merge`.
 - Recent history on the default branch (`git log --oneline -30`), after fetching it.
 
 If a search or listing fails, say so instead of claiming there is nothing.
@@ -64,6 +65,7 @@ Then show:
 - Assumptions.
 - That the build turns on `git rerere` (Git remembers how conflicts were resolved) in this repository's local Git config, as `gh stack init` requires.
 - Whether stacked PRs are turned on for the repository on GitHub. If they are not, say that the PRs can still be opened as an ordinary chain of PRs, each based on the one below, but GitHub will not show or merge them as a stack.
+- If `delete_branch_on_merge` is `false`, a question recommending turning on **Automatically delete head branches**, so GitHub deletes each remote branch as its PR merges. The setting covers every PR in the repository, not just this stack. Changing a repository setting is outward-facing and needs its own yes, separate from the push approval; say nothing about the setting when it is already on.
 - **Questions:** three to five, only about choices that are costly to change once built: public APIs and names, data and file formats, new dependencies, scope boundaries between PRs, stack order, and behavior users will rely on. Give your recommended answer for each. Skip anything cheap to change during review.
 
 Stop and wait for answers and "go". Apply precise edits without asking again; show the revised plan for substantive ones.
@@ -99,11 +101,11 @@ Ask for feedback and stop.
 
 ## 6. Collect feedback on the review branch
 
-Before committing the first fix, read [the fold and publish reference](references/fold-and-publish.md) and follow its step 6. In short: commit each fix on the review branch as a `fixup!` of a commit in the PR it belongs to, leave the PR branches unchanged, check the review branch's tip and a trial fold, and show the updated review. Ask for more feedback, or whether the review is done, and stop.
+Before committing the first fix, read [the fold and publish reference](references/fold-and-publish.md) and follow its step 6. In short: commit each fix on the review branch as a `fixup!` of a commit in the PR it belongs to, leave the PR branches unchanged, check the review branch's tip and a trial fold, and show the updated review. Ask for more feedback, or whether the review is done, and stop. If the user had no feedback at all, there is nothing to fold: run `gh stack checkout <top branch>`, delete the review branch with `git branch -d`, and ask step 7's push question.
 
 ## 7. Fold the fixes and publish
 
-Follow step 7 of [the fold and publish reference](references/fold-and-publish.md), reading it first if this session has not. In short: fold the fixes into their PRs with `git rebase --autosquash --update-refs`, check every branch again, and show the final review. Ask: "Push these N branches and open the PRs?" and stop. Only after that approval, push with `gh stack push`, open each PR with its approved title and body, group them with `gh stack submit --auto`, and check the result on GitHub.
+Follow step 7 of [the fold and publish reference](references/fold-and-publish.md), reading it first if this session has not. In short: fold the fixes into their PRs with `git rebase --autosquash --update-refs`, check every branch again, and show the final review. Ask: "Push these N branches and open the PRs?", naming the delete-branch-on-merge setting change too if it was approved, and stop. Only after that approval, turn on the setting if it was approved, push with `gh stack push`, open each PR with its approved title and body, group them with `gh stack submit --auto`, and check the result on GitHub.
 
 Opening the PRs does not authorize merging, force-pushing, or further changes. For merging, and for keeping the stack up to date after a PR merges or the default branch moves ahead, read [the update reference](references/update-stack.md).
 
