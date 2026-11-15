@@ -107,7 +107,7 @@ Review feedback can change a lot, so fixes collect on the review branch and are 
 - **Trial fold:** when this round has fixes for any PR below the top, fold them in a temporary detached worktree of the review branch's tip in the scratchpad: `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash --no-update-refs <base>`. Always pass `--no-update-refs`: with `rebase.updateRefs` set in the user's Git config, the trial would otherwise move the real PR branches. Folding removes only the fix commits, so PR k's new last commit is the commit at position (PR 1's commit count + … + PR k's commit count) in `git rev-list --reverse <base>..HEAD`; run the checks there, and remove the worktree. Report any conflict or failure in the review with the PR it belongs to.
 - Show the same review as step 5, with each PR's planned fixes, the trial fold's results, and what changed for each piece of feedback in the template's **Changes since last review** section. Update the titles and body files. Save it over the same review file.
 
-Ask for more feedback, or whether the review is done, and stop. If the user gives more feedback, repeat this step. If the user had no feedback at all, skip to step 7 and its question.
+Ask for more feedback, or whether the review is done, and stop. If the user gives more feedback, repeat this step. If the user had no feedback at all, there is nothing to fold: run `gh stack checkout <top branch>`, delete the review branch with `git branch -d`, and ask step 7's push question.
 
 ## 7. Fold the fixes and publish
 
