@@ -12,11 +12,12 @@ Use this skill when creating a macOS application, designing its storage model, o
 Classify every stored item before choosing a path:
 
 - User-owned content: recordings, documents, media, exports, and other files the user expects to find and manage. Keep these in the user-selected project/content location. Do not hide them in the app container just because the app created them.
-- Durable app-managed state: databases, job records, imported working copies, indexes, migrations, and other state needed by the app but not intended as user documents. Store it under the per-user Application Support directory.
-- Regenerable data: thumbnails, previews, waveform envelopes, downloaded models, and derived indexes. Store it under the per-user Caches directory and make deletion safe.
+- Durable app-managed state: databases, job records, imported working copies, indexes that cannot be rebuilt from data the app still has, migrations, and other state needed by the app but not intended as user documents. Store it under the per-user Application Support directory.
+- Regenerable data: thumbnails, previews, waveform envelopes, and indexes that can be rebuilt from data the app still has. Store it under the per-user Caches directory and make deletion safe. The system may delete Caches contents when disk space runs low, so keep only data whose loss costs a rebuild, not a feature. Large downloads the app needs to work offline, such as models, belong in Application Support with an explicit way for the user to remove them.
 - Logs: diagnostic logs under the per-user Logs directory, or use the platform's unified logging system for a native macOS app. Never treat logs as user documents.
-- Preferences: small settings only, using UserDefaults or the platform preferences mechanism. Do not put media, databases, caches, or job payloads in preferences.
-- Short-lived intermediates: use the system temporary directory and clean them up when possible. Never use a repository `tmp/` directory as an application-wide temporary store.
+- Preferences: small settings only, using UserDefaults or the platform preferences mechanism. Do not put media, databases, caches, or job payloads in preferences. Read and write preferences only through that API: never edit the preference `.plist` files directly, because the system caches them and can overwrite or ignore direct edits.
+- Short-lived intermediates: use the system temporary directory for scratch files that never become user files, and clean them up when possible. Never use a repository `tmp/` directory as an application-wide temporary store.
+- Files being saved: write the new file completely on the same volume as its destination, then replace the destination in one rename, so an interrupted save leaves the previous version intact. A rename cannot cross volumes, so do not write in the system temporary directory and move the result to a user folder that may be on another drive. In a native app, use `Data.write(to:options: .atomic)`, `NSDocument`, or a directory from `FileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: destination, create: true)` with `FileManager.replaceItemAt(_:withItemAt:)`. In a cross-platform app, create the temporary file in the destination's directory, flush and `fsync` it, then `os.replace` it over the destination, and delete it if the save fails.
 
 On macOS, the conventional roots are:
 
@@ -40,6 +41,14 @@ User-selected source and export paths are part of the project model, not disposa
 - Resolve and validate custom paths, create directories on demand, and report actionable errors for read-only or unavailable volumes.
 - Save the chosen path with the project/session when future actions must continue using it.
 - Do not silently redirect an existing project because a new default or command-line option changed. Existing saved paths should win; migration must be explicit.
+
+macOS asks the user for permission the first time an app reads or writes Documents, Desktop, Downloads, iCloud Drive, removable volumes, or network volumes, whether or not the app is sandboxed. If the user declines, later access fails with "operation not permitted" and the system does not ask again. Design for this:
+
+- Keep app-managed data out of these locations; Application Support, Caches, and Logs never need this permission.
+- Let the user choose project and export locations with an open or save panel. A location chosen that way is granted without a separate prompt, so prefer it over a default inside Documents.
+- Touch a protected location only right after a user action that explains why, such as choosing a folder or starting an export, never from a background job.
+- Add the matching purpose strings to `Info.plist` (`NSDocumentsFolderUsageDescription`, `NSDesktopFolderUsageDescription`, `NSDownloadsFolderUsageDescription`, `NSRemovableVolumesUsageDescription`, `NSNetworkVolumesUsageDescription`) so the prompt says why the app asks.
+- Report a permission denial separately from other write errors: name the location, point to System Settings > Privacy & Security > Files and Folders, and offer to choose another location.
 
 ## Use one path policy
 
@@ -79,6 +88,8 @@ Before handing off storage work, verify that:
 - caches and temporary files can be deleted without losing user content;
 - logs do not contain secrets or large payloads by default;
 - custom paths work with paths that contain spaces, on removable volumes, and in read-only failure cases;
+- an interrupted save leaves the previous version of the user's file intact, including when the destination is on another volume;
+- declining the privacy prompt for a protected location produces an actionable error, tested after `tccutil reset All <bundle-id>`;
 - existing projects retain their recorded paths;
 - path resolution is testable without mutating the real home directory;
 - the implementation uses the host platform's conventions and does not assume macOS paths on other platforms.
