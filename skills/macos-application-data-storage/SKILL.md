@@ -1,6 +1,6 @@
 ---
 name: macos-application-data-storage
-description: "Design or review file storage for macOS applications, applying native locations for app data, caches, logs, preferences, temporary files, and user-owned content; when a storage task touches a legacy layout, surface the cleanup or migration choice to the user before expanding scope."
+description: "Design or review file storage for macOS apps: where app data, caches, logs, preferences, temporary files, and user-owned files go (~/Library/Application Support, Caches, Logs, UserDefaults, sandbox containers), and when to ask before migrating a legacy layout. Use when creating a macOS app, designing its storage, or changing code that decides where it stores files, not for a feature that only reads or writes a file."
 ---
 
 # macOS application data storage
@@ -78,7 +78,7 @@ Before handing off storage work, verify that:
 - no application-owned runtime files are written into the repository or current working directory;
 - caches and temporary files can be deleted without losing user content;
 - logs do not contain secrets or large payloads by default;
-- custom paths work on spaces, removable volumes, and read-only failure cases;
+- custom paths work with paths that contain spaces, on removable volumes, and in read-only failure cases;
 - existing projects retain their recorded paths;
 - path resolution is testable without mutating the real home directory;
 - the implementation uses the host platform's conventions and does not assume macOS paths on other platforms.
