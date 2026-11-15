@@ -70,15 +70,7 @@ If the application is not following the categories above, explicitly prompt the 
 
 > The existing app stores [items] under [current path], which mixes [lifetime/ownership categories] and does not follow the macOS layout. Since this task already changes storage, should we include a cleanup/migration, or keep the scope limited and preserve the current layout for now?
 
-Do not silently expand the task or migrate data. If the user declines, keep the requested change focused and document the known layout debt. If the user approves, treat migration as a first-class part of the work:
-
-- inventory existing locations and versions;
-- define the old-to-new mapping and compatibility behavior;
-- preserve existing user files and saved project paths;
-- make the migration idempotent, recoverable, and explicit;
-- handle missing, read-only, partial, and interrupted migrations;
-- add tests for fresh installs, upgrades, custom paths, and existing projects;
-- document what is safe to delete and what is not.
+Do not silently expand the task or migrate data. If the user declines, keep the requested change focused and document the known layout debt. If the user approves, read [the migration guide](references/migration.md) before planning the work.
 
 ## Verification checklist
 
