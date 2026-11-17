@@ -1,6 +1,6 @@
 ---
 name: proposing-stacks
-description: Read a project's goals, plans, and progress (open issues, milestones, HANDOFF.md, README, docs), propose up to five PRs, build them as a stack of branches with `gh stack`, and publish them as a stacked set of PRs on GitHub after the user approves the plan, reviews the work, and approves the final branches. Also shows an overview of the current stack, and keeps it up to date after a PR in it merges or the default branch moves ahead. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks to see the stack overview or status, asks to update the remaining PRs after one merges or the stack falls behind, or asks to merge the stack or part of it.
+description: Propose the next few PRs from a project's issues, milestones, HANDOFF.md, and docs, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub; also show and update an existing stack. Use when the user asks what to work on next as PRs, asks for a stack of PRs, asks for the stack's overview or status, asks to update the remaining PRs after one merges or the stack falls behind, or asks to merge the stack or part of it. Not for opening a single PR.
 ---
 
 # Propose a stack
