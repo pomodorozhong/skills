@@ -1,0 +1,34 @@
+[
+  {
+    "skills": ["auditing-skills"],
+    "query": "Audit the skills in this repo against the skill best practices and tell me what to improve.",
+    "files": ["A repository with skills/ holding two skills: one whose reference file links on to a second reference and whose description has no when-to-use clause, and one that links to the other skill's SKILL.md by a relative path."],
+    "expected_behavior": [
+      "Reads the repository's README and AGENTS.md before judging, and changes no files",
+      "Runs scripts/check_skills.py on skills/ and uses its findings as evidence",
+      "Reports the chained reference, the missing when-to-use clause, and the link that leaves the skill folder, each with file:line evidence and a concrete fix",
+      "Drafts three evals for each skill, including one near-miss request",
+      "Shows the full report in the final message, ranks the fixes, and asks which to make"
+    ]
+  },
+  {
+    "skills": ["auditing-skills"],
+    "query": "Is the description of my committing skill good enough for Claude to pick it up?",
+    "files": ["skills/committing/SKILL.md"],
+    "expected_behavior": [
+      "Limits the audit to the committing skill and to the description points (frontmatter, naming, triggering)",
+      "Checks the frontmatter limits and whether the description says both what the skill does and when to use it",
+      "Suggests the words a user would type that the description is missing, as a rewritten description",
+      "Does not edit the file until the user picks a fix"
+    ]
+  },
+  {
+    "skills": ["auditing-skills"],
+    "query": "Write a new skill that deploys this app to Fly.io.",
+    "files": [],
+    "expected_behavior": [
+      "Does not load auditing-skills, because the request is to create a skill, not to audit one",
+      "Writes the new skill instead of producing an audit report"
+    ]
+  }
+]
