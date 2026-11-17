@@ -1,6 +1,6 @@
 ---
 name: applying-python-defaults
-description: Apply uv-first dependency management and execution defaults when creating, configuring, installing, locking, or running Python projects and tools. Use Homebrew only when uv is not an option, then stop and consult the user if neither can satisfy the need.
+description: Apply uv-first defaults, with Homebrew as the fallback, for Python projects and tools. Use when setting up a Python project, adding or removing dependencies, or running Python scripts, tests, or command-line tools (pyproject.toml, uv, pip, venv), unless the user asked for another workflow.
 ---
 
 # Python Project Defaults
