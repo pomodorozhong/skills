@@ -225,6 +225,45 @@ class CheckSkillsTests(unittest.TestCase):
         _, findings = run(self.root / 'creator')
         self.assertEqual(findings, [])
 
+    def test_encoded_and_root_relative_links(self):
+        self.skill('links', body='See [a](references/my%20file.md) and [docs](/README.md).\n')
+        self.write('links/references/my file.md', '# A\n')
+        code, findings = run(self.root / 'links')
+        self.assertEqual(code, 0, findings)
+        self.assertEqual([f['level'] for f in findings], ['NOTE'])
+        self.assertIn('repository root', findings[0]['message'])
+
+    def test_file_names_match_whole(self):
+        self.skill('names', body='Read [data](references/data.md).\n')
+        self.write('names/references/data.md', '# Data\n')
+        self.write('names/references/a.md', '# A\n')
+        _, findings = run(self.root / 'names')
+        flagged = [f['file'] for f in findings if 'nothing points' in f['message']]
+        self.assertEqual(flagged, ['references/a.md'])
+
+    def test_skips_dependency_folders_inside_a_skill(self):
+        self.skill('node', body='Run `scripts/run.js`.\n')
+        self.write('node/scripts/run.js', 'require("x")\n')
+        self.write('node/scripts/node_modules/x/README.md', '[gone](missing.md)\n')
+        _, findings = run(self.root / 'node')
+        self.assertEqual(findings, [])
+
+    def test_empty_files_are_not_duplicates(self):
+        for name in ('one', 'two'):
+            self.skill(name, body='Run `scripts/run.py`.\n')
+            self.write(f'{name}/scripts/run.py', f'print("{name}")\n')
+            self.write(f'{name}/scripts/__init__.py', '')
+        _, findings = run(self.root)
+        self.assertNotIn('identical', ' '.join(self.messages(findings)))
+
+    def test_parent_path_uses_folder_name(self):
+        self.skill('named')
+        scripts = self.root / 'named' / 'scripts'
+        scripts.mkdir()
+        result = subprocess.run([sys.executable, str(SCRIPT), '--json', '..'], cwd=scripts, capture_output=True, text=True)
+        findings = json.loads(result.stdout)
+        self.assertEqual(findings, [])
+
     def test_no_skills_exits_2(self):
         code, _ = run(self.root)
         self.assertEqual(code, 2)

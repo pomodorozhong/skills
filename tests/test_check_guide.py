@@ -89,7 +89,24 @@ class CheckGuideTests(unittest.TestCase):
         self.run_with(GUIDE, '--update')
         code, out = self.run_with(urllib.error.URLError('offline'))
         self.assertEqual(code, 2)
-        self.assertIn('Audit with the checklist snapshot', out)
+        self.assertIn('Audit with the checklist (snapshot of ', out)
+
+    def test_nested_fences_keep_headings_as_code(self):
+        guide = GUIDE + '\n## Fences\n\n````markdown\n```\n## Not a section either\n```\n````\n\n~~~\n```\n## Nor this\n~~~\n\n## After\n\nText.\n'
+        names = list(check_guide.sections(guide))
+        self.assertEqual(names[-2:], ['Fences', 'After'])
+
+    def test_unreadable_snapshot_exits_3(self):
+        for text in ('{not json', '{"checked": "2026-01-01"}'):
+            self.snapshot.write_text(text)
+            code, out = self.run_with(GUIDE)
+            self.assertEqual(code, 3, out)
+            self.assertIn('cannot be listed', out)
+            code, out = self.run_with(urllib.error.URLError('offline'))
+            self.assertEqual(code, 2, out)
+            self.assertIn('date unknown', out)
+        self.snapshot.unlink()
+        self.assertEqual(self.run_with(GUIDE)[0], 3)
 
     def test_bundled_snapshot_is_valid(self):
         data = json.loads((SCRIPT.parent.parent / 'references' / 'guide-snapshot.json').read_text())

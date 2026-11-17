@@ -38,6 +38,7 @@ python3 <this skill's folder>/scripts/check_guide.py
 - **Up to date** (exit 0): audit with the checklist.
 - **Changed** (exit 1): it lists the sections added, removed, or changed. Rerun with `--show` to print only those sections, read them, and audit any new or changed point too. Say in the report that the checklist needs updating. When working in this skill's own source repository, offer to update the checklist and then run `--update` to record the new snapshot; never run `--update` without updating the checklist first.
 - **Could not fetch** (exit 2): audit with the checklist, and say in the report which snapshot date it used.
+- **No usable snapshot** (exit 3): the script cannot tell what changed. Audit with the checklist, and say in the report that its freshness is unknown.
 
 ## 3. Run the script checks
 

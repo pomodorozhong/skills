@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 from pathlib import Path
 
 # Limits from Anthropic's skill authoring guide.
@@ -55,7 +56,7 @@ RUNNABLE = {'.py', '.sh', '.bash', '.js', '.mjs', '.cjs', '.ts', '.rb', '.pl'}
 NAME_PATTERN = re.compile(r'^[a-z0-9-]+$')
 XML_TAG = re.compile(r'</?[A-Za-z][^>]*>')
 LINK = re.compile(r'\]\(<?([^)\s>]+)>?(?:\s+"[^"]*")?\)')
-FENCE = re.compile(r'^\s*(```|~~~)')
+FENCE = re.compile(r'^\s*(`{3,}|~{3,})(.*)$')
 FIRST_OR_SECOND_PERSON = re.compile(r"\b(I can|I will|I'll|I help|you can|you'll|you will)\b", re.I)
 WHEN_CLAUSE = re.compile(r'\b((use|read|load|invoke|apply) (it |this skill |this )?(when|whenever|for|if|before|after)|when the user|triggers?)\b', re.I)
 WINDOWS_PATH = re.compile(r'\b[\w.-]+(\\[\w.-]+)+\.(md|py|sh|js|ts|json|ya?ml|txt|csv)\b')
@@ -95,12 +96,12 @@ def find_skills(paths):
         real = folder.resolve()
         if real not in seen_skills:
             seen_skills.add(real)
-            skills.append((label, real, folder.absolute().name))
+            skills.append((label, real, installed_name(folder)))
 
     for raw in paths:
         root = Path(raw).expanduser()
         if (root / 'SKILL.md').is_file():
-            add(root.absolute().name, root)
+            add(installed_name(root), root)
             continue
         if not root.is_dir():
             continue
@@ -118,6 +119,25 @@ def find_skills(paths):
             dirnames[:] = sorted(d for d in dirnames
                                  if d not in SKIP_DIRS or (Path(directory) / d / 'SKILL.md').is_file())
     return skills
+
+
+def installed_name(folder):
+    """The folder's own name, with `.` and `..` worked out but symlinks kept."""
+    return Path(os.path.abspath(folder)).name
+
+
+def skill_files(skill):
+    """Every file in the skill, leaving out SKIP_DIRS such as node_modules."""
+    files = []
+    for directory, dirnames, filenames in os.walk(skill):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        files.extend(Path(directory) / name for name in filenames if name != '.DS_Store')
+    return sorted(files)
+
+
+def mentions(text, path):
+    """Whether text names the file as a whole word, so `a.md` is not found in `data.md`."""
+    return re.search(rf'(?<![\w.-]){re.escape(path.name)}(?![\w-])', text) is not None
 
 
 def enclosing_skill(path, own):
@@ -147,7 +167,7 @@ def parse_frontmatter(text):
             key, value = match.group(1), match.group(2).strip()
             if value in ('>', '|', '>-', '|-', '>+', '|+'):
                 value = ''
-            fields[key] = value.strip('"\'') if len(value) > 1 and value[0] == value[-1] and value[0] in '"\'' else value
+            fields[key] = value[1:-1] if len(value) > 1 and value[0] == value[-1] and value[0] in '"\'' else value
         elif key and line.startswith((' ', '\t')):
             fields[key] = (fields[key] + ' ' + line.strip()).strip()
         i += 1
@@ -156,24 +176,46 @@ def parse_frontmatter(text):
     return fields, i + 2
 
 
+def code_flags(lines):
+    """Yield (line, whether it is in a fenced code block); fence lines count as code.
+
+    As in CommonMark, a fence closes only on the same character, at least as
+    long and with nothing after it, so a ``` line inside a ~~~ or ```` block
+    stays code. check_guide.py has the same function.
+    """
+    fence = None
+    for line in lines:
+        match = FENCE.match(line)
+        if fence is None:
+            if match and not (match.group(1)[0] == '`' and '`' in match.group(2)):
+                fence = match.group(1)
+                yield line, True
+            else:
+                yield line, False
+        else:
+            if (match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence)
+                    and not match.group(2).strip()):
+                fence = None
+            yield line, True
+
+
 def prose_lines(text):
     """Yield (line number, line) outside fenced code blocks."""
-    in_fence = False
-    for number, line in enumerate(text.splitlines(), 1):
-        if FENCE.match(line):
-            in_fence = not in_fence
-            continue
-        if not in_fence:
+    for number, (line, in_code) in enumerate(code_flags(text.splitlines()), 1):
+        if not in_code:
             yield number, line
 
 
 def local_links(text):
-    """Yield (line number, target path without anchor) for relative links."""
+    """Yield (line number, target path without anchor) for relative links.
+
+    Targets are percent-decoded, so `my%20file.md` names `my file.md`.
+    """
     for number, line in prose_lines(text):
         for target in LINK.findall(line):
             if re.match(r'^[a-z][a-z0-9+.-]*:', target, re.I) or target.startswith('#'):
                 continue
-            target = target.split('#', 1)[0]
+            target = urllib.parse.unquote(target.split('#', 1)[0])
             if target and not PLACEHOLDER.match(target):
                 yield number, target
 
@@ -240,7 +282,7 @@ def check_skill(skill, add, folder_name):
     if body_lines > BODY_MAX_LINES:
         add('WARN', 'SKILL.md', None, f'body is {body_lines} lines; keep it under {BODY_MAX_LINES} and move details into reference files')
 
-    files = sorted(p for p in skill.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.name != '.DS_Store')
+    files = skill_files(skill)
     markdown = [p for p in files if p.suffix == '.md']
     texts = {p: read_text(p) for p in markdown}
     linked_from = {}  # target path -> set of files that link to it
@@ -248,6 +290,10 @@ def check_skill(skill, add, folder_name):
     for md in markdown:
         rel = md.relative_to(skill).as_posix()
         for number, target in local_links(texts[md]):
+            if target.startswith('/'):
+                # Relative to the repository root on GitHub; the root is unknown here.
+                add('NOTE', rel, number, f'link to {target} is relative to the repository root, so it leaves the skill folder; fine for a project skill that stays in its repository, but it breaks if the skill is installed elsewhere')
+                continue
             resolved = (md.parent / target).resolve()
             if not resolved.exists():
                 add('ERROR', rel, number, f'broken link to {target}')
@@ -285,20 +331,20 @@ def check_skill(skill, add, folder_name):
             # Scripts are run, not read, so naming one in any instruction file
             # is enough; another script calling or importing it is too.
             # Match whole names, so `check.py` is not named by "checks".
-            named = re.compile(rf'(?<![\w.-]){re.escape(path.name)}\b|\bscripts/{re.escape(path.stem)}\b')
+            named = re.compile(rf'\bscripts/{re.escape(path.stem)}\b')
             imported = re.compile(rf'\b(import|from)\s+{re.escape(path.stem)}\b')
-            if any(named.search(t) for t in texts.values()) or any(
-                    named.search(t) or imported.search(t) for p, t in script_texts.items() if p != path):
+            if any(mentions(t, path) or named.search(t) for t in texts.values()) or any(
+                    mentions(t, path) or named.search(t) or imported.search(t) for p, t in script_texts.items() if p != path):
                 continue
             add('WARN', rel, None, 'no instruction names this script, so it will never be run')
             continue
         sources = linked_from.get(path.resolve(), set())
-        if skill_md in sources or rel in skill_text or path.name in skill_text:
+        if skill_md in sources or mentions(skill_text, path):
             continue
-        if path.suffix != '.md' and any(path.name in t for t in script_texts.values()):
+        if path.suffix != '.md' and any(mentions(t, path) for t in script_texts.values()):
             continue  # data a script loads
         mentioned_by = sorted(p.relative_to(skill).as_posix() for p in sources) or [
-            m.relative_to(skill).as_posix() for m in markdown if m != path and path.name in texts[m]]
+            m.relative_to(skill).as_posix() for m in markdown if m != path and mentions(texts[m], path)]
         if mentioned_by:
             add('WARN', rel, None, f'reachable only through {", ".join(mentioned_by)}; link it from SKILL.md so references stay one level deep')
         else:
@@ -338,11 +384,14 @@ def check_evals(skill, add):
         add('WARN', 'evals/', None, f'{count} evaluation scenarios; the guide asks for at least {MIN_EVALS}')
 
 
-def check_duplicates(all_files, add):
-    """all_files holds (label, skill folder, file); add takes (label, level, path, line, message)."""
+def check_duplicates(all_files, adder):
+    """all_files holds (label, skill folder, file); adder(label) gives that skill's add.
+
+    Empty files (such as `__init__.py`) are left out: they match without being copies.
+    """
     by_hash = {}
     for label, skill, path in all_files:
-        if by_convention(path.relative_to(skill).parts):
+        if by_convention(path.relative_to(skill).parts) or path.stat().st_size == 0:
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         by_hash.setdefault(digest, []).append((label, skill, path))
@@ -352,7 +401,7 @@ def check_duplicates(all_files, add):
         names = [f'{label}/{p.relative_to(s).as_posix()}' for label, s, p in copies]
         for (label, skill, path), name in zip(copies, names):
             others = [n for n in names if n != name]
-            add(label, 'NOTE', path.relative_to(skill).as_posix(), None, f'identical to {", ".join(others)}; keep the copies in sync')
+            adder(label)('NOTE', path.relative_to(skill).as_posix(), None, f'identical to {", ".join(others)}; keep the copies in sync')
 
 
 def main(argv=None):
@@ -374,7 +423,7 @@ def main(argv=None):
     for label, skill, folder_name in skills:
         files = check_skill(skill, adder(label), folder_name)
         all_files.extend((label, skill, f) for f in files if f.name != 'SKILL.md')
-    check_duplicates(all_files, lambda label, level, path, line, message: findings.append(Finding(level, label, path, line, message)))
+    check_duplicates(all_files, adder)
 
     order = {'ERROR': 0, 'WARN': 1, 'NOTE': 2}
     findings.sort(key=lambda f: (f.skill, order[f.level], f.path, f.line or 0))
