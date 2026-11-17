@@ -46,7 +46,7 @@ python3 <this skill's folder>/scripts/check_guide.py
 python3 <this skill's folder>/scripts/check_skills.py <repository root, skills folder, or skill folder>
 ```
 
-It decides the rules a script can: frontmatter limits, `SKILL.md` length, broken links, links into another skill or out of the skill folder, files reachable only through another reference or not at all, scripts no instruction names, long references without a table of contents, Windows paths, dated wording, identical files across skills, and missing evals. `--json` prints the findings as JSON. Exit code 1 means a hard rule is broken.
+It decides the rules a script can: frontmatter limits, `SKILL.md` length, broken links, links into another skill or out of the skill folder, files reachable only through another reference or not at all, scripts no instruction names, long references without a table of contents, Windows paths, dated wording, and identical files across skills. `--json` prints the findings as JSON. Exit code 1 means a hard rule is broken.
 
 Use the findings as evidence for the checklist points, not as the audit itself: the script cannot judge content, and its wording checks are heuristics, so confirm each one by reading before reporting it. If Python 3 is not available, make the same checks by reading.
 
@@ -63,7 +63,7 @@ Back every ⚠️ and ❌ with `file:line` evidence and a concrete fix. When the
 
 ## 5. Check the evals
 
-The guide asks for at least three evaluation scenarios per skill. Look for them in each skill's `evals/` folder and in the repository's tests. For each skill with fewer, draft three in the report, in the format of [this skill's own evals](evals/evals.json): two that exercise the skill's riskiest steps, and one near-miss request that should not trigger it. Write them to files only if the user asks.
+The guide asks for at least three evaluation scenarios per skill. Look for them in each skill's `evals/` folder and in the repository's tests. For each skill with fewer, draft three in the report, each with a query, any files it needs, and the expected behaviors: two that exercise the skill's riskiest steps, and one near-miss request that should not trigger it. Write them to files only if the user asks.
 
 ## 6. Report
 

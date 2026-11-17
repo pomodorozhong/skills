@@ -51,7 +51,7 @@ A snapshot of [Anthropic's skill authoring best practices](https://platform.clau
 
 ## Evaluation and iteration
 
-17. **Evals first (script counts them).** At least three scenarios per skill, each with a query, any files, and the expected behaviors, ideally with a no-skill baseline. Include one near-miss request that should not trigger the skill.
+17. **Evals first.** At least three scenarios per skill, each with a query, any files, and the expected behaviors, ideally with a no-skill baseline. Include one near-miss request that should not trigger the skill.
 18. **Built from real use.** Rules trace back to observed failures, not imagined ones. Commit history and issues are evidence.
 19. **Navigation works.** Files Claude never opens may be unneeded or poorly linked; a reference read on every run may belong in `SKILL.md`. Look for that from transcripts or tests when available.
 

@@ -14,9 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / 'skills' / 'auditing-skills' / 'scripts' / 'check_skills.py'
 
-GOOD_EVALS = json.dumps([{'query': q, 'expected_behavior': ['x']} for q in 'abc'])
-
-
 def run(*paths):
     result = subprocess.run([sys.executable, str(SCRIPT), '--json', *map(str, paths)],
                             capture_output=True, text=True)
@@ -36,10 +33,8 @@ class CheckSkillsTests(unittest.TestCase):
         path.write_text(textwrap.dedent(text).lstrip())
         return path
 
-    def skill(self, name, description='Does a thing. Use when the user asks for the thing.', body='# Thing\n', evals=True):
+    def skill(self, name, description='Does a thing. Use when the user asks for the thing.', body='# Thing\n'):
         self.write(f'{name}/SKILL.md', f'---\nname: {Path(name).name}\ndescription: {description}\n---\n\n{body}')
-        if evals:
-            self.write(f'{name}/evals/evals.json', GOOD_EVALS)
         return self.root / name
 
     def messages(self, findings, level=None):
@@ -110,18 +105,15 @@ class CheckSkillsTests(unittest.TestCase):
         self.assertIn('Windows-style path', text)
         self.assertIn('time-sensitive wording "before August 2025"', text)
 
-    def test_evals_and_duplicates(self):
-        self.skill('one', evals=False, body='Use [the template](assets/t.md).\n')
+    def test_duplicates(self):
+        self.skill('one', body='Use [the template](assets/t.md).\n')
         self.skill('two', body='Use [the template](assets/t.md).\n')
         self.write('one/assets/t.md', 'same\n')
         self.write('two/assets/t.md', 'same\n')
-        self.write('two/evals/evals.json', json.dumps({'evals': [{'query': 'a'}]}))
         _, findings = run(self.root)
         by_skill = {}
         for f in findings:
             by_skill.setdefault(f['skill'], []).append(f['message'])
-        self.assertIn('no evaluation scenarios', ' '.join(by_skill['one']))
-        self.assertIn('1 evaluation scenarios', ' '.join(by_skill['two']))
         self.assertIn('identical to two/assets/t.md', ' '.join(by_skill['one']))
 
     def test_finds_project_skills_from_repository_root(self):
@@ -212,18 +204,6 @@ class CheckSkillsTests(unittest.TestCase):
             self.write(f'{name}/LICENSE.txt', 'MIT\n')
         _, findings = run(self.root)
         self.assertNotIn('identical', ' '.join(self.messages(findings)))
-
-    def test_eval_items_must_be_scenarios(self):
-        self.skill('junk', evals=False)
-        self.write('junk/evals/config.json', '[1, 2, 3]')
-        _, findings = run(self.root / 'junk')
-        text = ' '.join(self.messages(findings))
-        self.assertIn('no scenarios found', text)
-        self.assertIn('no evaluation scenarios', text)
-        self.skill('creator', evals=False)
-        self.write('creator/evals/evals.json', json.dumps({'skill_name': 'creator', 'evals': [{'id': i, 'prompt': p} for i, p in enumerate('abc')]}))
-        _, findings = run(self.root / 'creator')
-        self.assertEqual(findings, [])
 
     def test_encoded_and_root_relative_links(self):
         self.skill('links', body='See [a](references/my%20file.md) and [docs](/README.md).\n')

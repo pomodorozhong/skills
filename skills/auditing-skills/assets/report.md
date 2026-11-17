@@ -17,7 +17,7 @@ Audited <N> skills (<names>) against the guide (<read fresh on DATE | checklist 
 
 ## Draft evals
 
-<Per skill that has fewer than three: three scenarios in the evals.json format, including one near-miss that should not trigger it. Omit this section when every skill has enough.>
+<Per skill that has fewer than three: three scenarios, each with a query, any files, and the expected behaviors, including one near-miss that should not trigger it. Omit this section when every skill has enough.>
 
 ## Fix first
 

@@ -30,8 +30,6 @@ BODY_MAX_LINES = 500
 # a partial read (such as `head -100`) still shows everything the file covers.
 TOC_MIN_LINES = 100
 TOC_SEARCH_LINES = 30
-# The guide asks for at least three evaluation scenarios per skill.
-MIN_EVALS = 3
 RESERVED_WORDS = ('anthropic', 'claude')
 # Folders never searched for skills: version control, dependencies, build
 # output, and agent worktrees, which hold copies of the same skills. A folder
@@ -44,9 +42,6 @@ SKIP_DIRS = {'.git', '.hg', '.svn', 'node_modules', '.venv', 'venv', '__pycache_
 # agents/openai.yaml, licenses, and dotfiles.
 CONVENTION_DIRS = {'evals', 'agents'}
 LICENSE_FILE = re.compile(r'^(LICEN[CS]E|COPYING|NOTICE)\b', re.I)
-# Fields that mark an item in evals/*.json as a scenario: `query` in the
-# guide's format, `prompt` in skill-creator's.
-EVAL_QUERY_FIELDS = ('query', 'prompt')
 # Link targets such as `URL` or `LINK` are template placeholders, not files.
 PLACEHOLDER = re.compile(r'^[A-Z][A-Z0-9_-]*$')
 # Bundled scripts meant to be run. Files deeper in scripts/, or named with a
@@ -359,29 +354,8 @@ def check_skill(skill, add, folder_name):
             if not any(CONTENTS_HEADING.match(l) for l in head) and sum(bool(ANCHOR_LIST_ITEM.match(l)) for l in head) < 3:
                 add('WARN', md.relative_to(skill).as_posix(), None, f'{len(lines)} lines with no table of contents in its first {TOC_SEARCH_LINES} lines')
 
-    check_evals(skill, add)
     return files
 
-
-def check_evals(skill, add):
-    count = 0
-    for path in sorted((skill / 'evals').glob('*.json')) if (skill / 'evals').is_dir() else []:
-        rel = path.relative_to(skill).as_posix()
-        try:
-            data = json.loads(path.read_text(encoding='utf-8-sig'))
-        except (ValueError, UnicodeDecodeError) as error:
-            add('ERROR', rel, None, f'not valid JSON: {error}')
-            continue
-        items = data.get('evals', []) if isinstance(data, dict) else data
-        found = sum(1 for item in items if isinstance(item, dict) and any(
-            isinstance(item.get(field), str) and item[field].strip() for field in EVAL_QUERY_FIELDS)) if isinstance(items, list) else 0
-        if not found:
-            add('NOTE', rel, None, f'no scenarios found; expected a list of objects with {" or ".join(EVAL_QUERY_FIELDS)}')
-        count += found
-    if count == 0:
-        add('WARN', 'evals/', None, f'no evaluation scenarios; the guide asks for at least {MIN_EVALS}')
-    elif count < MIN_EVALS:
-        add('WARN', 'evals/', None, f'{count} evaluation scenarios; the guide asks for at least {MIN_EVALS}')
 
 
 def check_duplicates(all_files, adder):
