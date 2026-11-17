@@ -1,7 +1,8 @@
 """Static checks on the skill files themselves.
 
 These read the Markdown under skills/ and run no agent. They catch broken
-links between skill files and growth of the always-loaded AGENTS.md block.
+links between skill files, growth of the always-loaded AGENTS.md block, and
+drift between template copies shared by several skills.
 
 Run from the repo root: python3 -m unittest discover tests
 """
@@ -21,6 +22,12 @@ RELATIVE_LINK = re.compile(r'\]\((?!https?://|#)([^)#\s]+)')
 # references/working-rules.md.
 AGENTS_BLOCK_WORD_LIMIT = 300
 
+# Templates copied into more than one skill, because each skill installs on its
+# own. Every copy must stay identical; edit them together.
+SHARED_TEMPLATES = [
+    ('opening-prs/assets/pr-body.md', 'proposing-stacks/assets/pr-body.md'),
+]
+
 
 class SkillFileTests(unittest.TestCase):
     def test_relative_links_resolve(self):
@@ -35,6 +42,13 @@ class SkillFileTests(unittest.TestCase):
         self.assertEqual(text.count('<!-- handoff:end -->'), 1)
         self.assertLess(text.index('<!-- handoff:start'), text.index('<!-- handoff:end -->'))
         self.assertLessEqual(len(text.split()), AGENTS_BLOCK_WORD_LIMIT)
+
+    def test_shared_templates_match(self):
+        for copies in SHARED_TEMPLATES:
+            first = (SKILLS / copies[0]).read_text()
+            for other in copies[1:]:
+                with self.subTest(template=copies[0], copy=other):
+                    self.assertEqual((SKILLS / other).read_text(), first)
 
 
 if __name__ == '__main__':
