@@ -5,8 +5,9 @@
     "files": ["A repository with skills/ holding two skills: one whose reference file links on to a second reference and whose description has no when-to-use clause, and one that links to the other skill's SKILL.md by a relative path."],
     "expected_behavior": [
       "Reads the repository's README and AGENTS.md before judging, and changes no files",
-      "Runs scripts/check_skills.py on skills/ and uses its findings as evidence",
-      "Reports the chained reference, the missing when-to-use clause, and the link that leaves the skill folder, each with file:line evidence and a concrete fix",
+      "Runs scripts/check_guide.py first and says whether the checklist is up to date",
+      "Runs scripts/check_skills.py on the repository root and uses its findings as evidence",
+      "Reports the chained reference, the missing when-to-use clause, and the link into the other skill's folder, each with file:line evidence and a concrete fix",
       "Drafts three evals for each skill, including one near-miss request",
       "Shows the full report in the final message, ranks the fixes, and asks which to make"
     ]

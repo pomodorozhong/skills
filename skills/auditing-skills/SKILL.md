@@ -52,7 +52,7 @@ Use the findings as evidence for the checklist points, not as the audit itself: 
 
 ## 4. Read and judge each skill
 
-Read every file of each skill in full, with line numbers: `SKILL.md`, references, assets, scripts, and agent metadata. Then go through [the checklist](references/checklist.md) point by point and give each a verdict:
+Read each skill's instructions in full, with line numbers: `SKILL.md`, references, assets, and agent metadata. Read scripts only as far as the checklist needs: how they are run, their dependencies, their error handling, and their constants. Then go through [the checklist](references/checklist.md) point by point and give each a verdict:
 
 - ✅ follows it
 - ⚠️ partly, or a trade-off worth a look
