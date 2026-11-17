@@ -77,7 +77,7 @@ class CheckSkillsTests(unittest.TestCase):
             [not a link](references/also-gone.md)
             ```
         '''))
-        self.write('main/references/a.md', 'Then read [b](b.md).\n')
+        self.write('main/references/a.md', 'Then read [b](b.md).\n\nSee [its steps](b.md#steps).\n')
         self.write('main/references/b.md', '# B\n')
         self.write('main/references/orphan.md', '# Orphan\n')
         code, findings = run(self.root / 'main')
@@ -86,7 +86,10 @@ class CheckSkillsTests(unittest.TestCase):
         self.assertIn('broken link to references/gone.md', text)
         self.assertNotIn('also-gone', text)
         self.assertIn('reaches into the "other" skill', text)
-        self.assertIn('chained reference: sends the reader on to references/b.md', text)
+        chained = [f for f in findings if 'chained reference' in f['message']]
+        self.assertEqual(len(chained), 1, chained)
+        self.assertEqual(chained[0]['line'], 1)
+        self.assertIn('sends the reader on to references/b.md (lines 1, 3)', chained[0]['message'])
         self.assertIn('reachable only through references/a.md', text)
         self.assertIn('nothing points to this file', text)
 

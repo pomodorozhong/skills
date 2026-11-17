@@ -287,6 +287,7 @@ def check_skill(skill, add, folder_name):
 
     for md in markdown:
         rel = md.relative_to(skill).as_posix()
+        chained = {}  # reference this file sends the reader on to -> line numbers
         for number, target in local_links(texts[md]):
             if target.startswith('/'):
                 # Relative to the repository root on GitHub; the root is unknown here.
@@ -304,7 +305,14 @@ def check_skill(skill, add, folder_name):
             else:
                 linked_from.setdefault(resolved, set()).add(md)
                 if md != skill_md and resolved.suffix == '.md' and resolved != skill_md.resolve() and 'assets' not in resolved.relative_to(skill).parts:
-                    add('NOTE', rel, number, f'chained reference: sends the reader on to {resolved.relative_to(skill).as_posix()}; make each reference complete on its own')
+                    chained.setdefault(resolved.relative_to(skill).as_posix(), []).append(number)
+        if chained:
+            # One note per file, so a reference that links to sections of
+            # another many times does not flood the output.
+            targets = ', '.join(f'{target} (line{"s" if len(lines) > 1 else ""} {", ".join(map(str, lines))})'
+                                for target, lines in chained.items())
+            first = min(line for lines in chained.values() for line in lines)
+            add('NOTE', rel, first, f'chained reference: sends the reader on to {targets}; make each reference complete on its own')
         for number, line in prose_lines(texts[md]):
             if WINDOWS_PATH.search(line):
                 add('WARN', rel, number, 'Windows-style path; use forward slashes')
