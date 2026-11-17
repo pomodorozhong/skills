@@ -213,6 +213,12 @@ class CheckSkillsTests(unittest.TestCase):
         self.assertEqual([f['level'] for f in findings], ['NOTE'])
         self.assertIn('repository root', findings[0]['message'])
 
+    def test_links_in_inline_code_are_examples(self):
+        self.skill('code', body='Write links as `[text](path.md)` or ``[a](`b`.md)``, not [real](missing.md).\n')
+        code, findings = run(self.root / 'code')
+        self.assertEqual(code, 1, findings)
+        self.assertEqual(self.messages(findings), ['broken link to missing.md'])
+
     def test_file_names_match_whole(self):
         self.skill('names', body='Read [data](references/data.md).\n')
         self.write('names/references/data.md', '# Data\n')

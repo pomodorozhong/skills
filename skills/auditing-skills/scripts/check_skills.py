@@ -51,6 +51,8 @@ RUNNABLE = {'.py', '.sh', '.bash', '.js', '.mjs', '.cjs', '.ts', '.rb', '.pl'}
 NAME_PATTERN = re.compile(r'^[a-z0-9-]+$')
 XML_TAG = re.compile(r'</?[A-Za-z][^>]*>')
 LINK = re.compile(r'\]\(<?([^)\s>]+)>?(?:\s+"[^"]*")?\)')
+# An inline code span: a run of backticks, then text, then a run of the same length.
+CODE_SPAN = re.compile(r'(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)')
 FENCE = re.compile(r'^\s*(`{3,}|~{3,})(.*)$')
 FIRST_OR_SECOND_PERSON = re.compile(r"\b(I can|I will|I'll|I help|you can|you'll|you will)\b", re.I)
 WHEN_CLAUSE = re.compile(r'\b((use|read|load|invoke|apply) (it |this skill |this )?(when|whenever|for|if|before|after)|when the user|triggers?)\b', re.I)
@@ -204,10 +206,11 @@ def prose_lines(text):
 def local_links(text):
     """Yield (line number, target path without anchor) for relative links.
 
-    Targets are percent-decoded, so `my%20file.md` names `my file.md`.
+    Targets are percent-decoded, so `my%20file.md` names `my file.md`. Links
+    inside inline code, such as `[text](path.md)`, are examples, not links.
     """
     for number, line in prose_lines(text):
-        for target in LINK.findall(line):
+        for target in LINK.findall(CODE_SPAN.sub('', line)):
             if re.match(r'^[a-z][a-z0-9+.-]*:', target, re.I) or target.startswith('#'):
                 continue
             target = urllib.parse.unquote(target.split('#', 1)[0])
