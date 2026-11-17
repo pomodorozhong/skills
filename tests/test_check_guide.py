@@ -76,6 +76,15 @@ class CheckGuideTests(unittest.TestCase):
         self.assertIn('Match the risk and the model.', out)
         self.assertNotIn('Be brief', out)
 
+    def test_new_repeated_heading_does_not_rename_existing_copy(self):
+        repeated = GUIDE + '\n## Example\n\nFirst.\n\n## Example\n\nSecond.\n'
+        self.run_with(repeated, '--update')
+        code, out = self.run_with(repeated.replace('## Example\n\nFirst.', '## Example\n\nNew.\n\n## Example\n\nFirst.'))
+        self.assertEqual(code, 1)
+        self.assertEqual(out.count('Added: Example ['), 1)
+        self.assertNotIn('Removed', out)
+        self.assertNotIn('Changed', out)
+
     def test_fetch_failure_exits_2(self):
         self.run_with(GUIDE, '--update')
         code, out = self.run_with(urllib.error.URLError('offline'))

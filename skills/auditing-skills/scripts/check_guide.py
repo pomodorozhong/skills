@@ -45,9 +45,13 @@ def normalize(text):
 
 
 def sections(markdown):
-    """Map 'Section > Subsection' to its text. Headings in code blocks are content."""
-    result, current, parent, in_fence = {}, '(intro)', None, False
-    body = {current: []}
+    """Map 'Section > Subsection' to its text. Headings in code blocks are content.
+
+    A heading path that occurs more than once gets its content's short hash as
+    a suffix, such as 'Key findings [0c13ffde]', rather than a number by
+    position, so adding or moving one copy does not rename the others.
+    """
+    parts, parent, in_fence = [('(intro)', [])], None, False
     for line in markdown.splitlines():
         if FENCE.match(line):
             in_fence = not in_fence
@@ -55,15 +59,22 @@ def sections(markdown):
         if match:
             level, title = len(match.group(1)), match.group(2)
             if level == 2:
-                parent, current = title, title
+                parent, name = title, title
             else:
-                current = f'{parent} > {title}' if parent else title
-            while current in body:  # keep repeated headings apart
-                current += ' (again)'
-            body[current] = []
-        body[current].append(line)
-    for name, lines in body.items():
-        result[name] = '\n'.join(lines).strip()
+                name = f'{parent} > {title}' if parent else title
+            parts.append((name, []))
+        parts[-1][1].append(line)
+    counts = {}
+    for name, _ in parts:
+        counts[name] = counts.get(name, 0) + 1
+    result = {}
+    for name, lines in parts:
+        text = '\n'.join(lines).strip()
+        if counts[name] > 1:
+            name = f'{name} [{sha256(normalize(text))[:8]}]'
+        while name in result:  # identical copies
+            name += '+'
+        result[name] = text
     return result
 
 

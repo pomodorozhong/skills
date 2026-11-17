@@ -33,10 +33,19 @@ TOC_SEARCH_LINES = 30
 MIN_EVALS = 3
 RESERVED_WORDS = ('anthropic', 'claude')
 # Folders never searched for skills: version control, dependencies, build
-# output, and agent worktrees, which hold copies of the same skills.
+# output, and agent worktrees, which hold copies of the same skills. A folder
+# with one of these names that holds SKILL.md is still a skill.
 SKIP_DIRS = {'.git', '.hg', '.svn', 'node_modules', '.venv', 'venv', '__pycache__',
              '.tox', '.mypy_cache', '.pytest_cache', 'dist', 'build', '.next', 'target', 'worktrees',
              '.trash', '.Trash'}
+# Files an agent or tool finds by convention, so nothing needs to link to them,
+# and copies across skills are expected: evals, agent metadata such as Codex
+# agents/openai.yaml, licenses, and dotfiles.
+CONVENTION_DIRS = {'evals', 'agents'}
+LICENSE_FILE = re.compile(r'^(LICEN[CS]E|COPYING|NOTICE)\b', re.I)
+# Fields that mark an item in evals/*.json as a scenario: `query` in the
+# guide's format, `prompt` in skill-creator's.
+EVAL_QUERY_FIELDS = ('query', 'prompt')
 # Link targets such as `URL` or `LINK` are template placeholders, not files.
 PLACEHOLDER = re.compile(r'^[A-Z][A-Z0-9_-]*$')
 # Bundled scripts meant to be run. Files deeper in scripts/, or named with a
@@ -69,7 +78,10 @@ class Finding:
 
 
 def find_skills(paths):
-    """Return (label, real folder) for each skill under the given paths.
+    """Return (label, real folder, installed name) for each skill under the given paths.
+
+    The installed name is the folder name as found, before following any
+    symlink, since that is the name the agent sees.
 
     A path that holds SKILL.md is one skill. Any other folder is searched at
     every depth, hidden folders included, so a repository root finds
@@ -83,12 +95,12 @@ def find_skills(paths):
         real = folder.resolve()
         if real not in seen_skills:
             seen_skills.add(real)
-            skills.append((label, real))
+            skills.append((label, real, folder.absolute().name))
 
     for raw in paths:
         root = Path(raw).expanduser()
         if (root / 'SKILL.md').is_file():
-            add(root.resolve().name, root)
+            add(root.absolute().name, root)
             continue
         if not root.is_dir():
             continue
@@ -103,7 +115,8 @@ def find_skills(paths):
                 add(Path(directory).relative_to(root).as_posix(), Path(directory))
                 dirnames[:] = []
                 continue
-            dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+            dirnames[:] = sorted(d for d in dirnames
+                                 if d not in SKIP_DIRS or (Path(directory) / d / 'SKILL.md').is_file())
     return skills
 
 
@@ -118,7 +131,11 @@ def enclosing_skill(path, own):
 
 
 def parse_frontmatter(text):
-    """Return (fields, body start line) from simple YAML frontmatter, or (None, 1)."""
+    """Return (fields, body start line) from simple YAML frontmatter.
+
+    Returns (None, 1) when there is no opening `---`, and (fields, None) when
+    there is no closing one.
+    """
     lines = text.splitlines()
     if not lines or lines[0].strip() != '---':
         return None, 1
@@ -134,6 +151,8 @@ def parse_frontmatter(text):
         elif key and line.startswith((' ', '\t')):
             fields[key] = (fields[key] + ' ' + line.strip()).strip()
         i += 1
+    if i == len(lines):
+        return fields, None
     return fields, i + 2
 
 
@@ -167,10 +186,13 @@ def inside(path, folder):
         return False
 
 
-def check_frontmatter(skill, text, add):
+def check_frontmatter(folder_name, text, add):
     fields, body_start = parse_frontmatter(text)
     if fields is None:
         add('ERROR', 'SKILL.md', 1, 'no YAML frontmatter; it needs `name` and `description`')
+        return 1
+    if body_start is None:
+        add('ERROR', 'SKILL.md', 1, 'frontmatter has no closing `---`, so agents cannot read it')
         return 1
     name = fields.get('name', '')
     if not name:
@@ -183,8 +205,8 @@ def check_frontmatter(skill, text, add):
         for word in RESERVED_WORDS:
             if word in name.lower():
                 add('ERROR', 'SKILL.md', 1, f'name contains the reserved word "{word}"')
-        if name != skill.name:
-            add('WARN', 'SKILL.md', 1, f'name "{name}" differs from its folder "{skill.name}"')
+        if name != folder_name:
+            add('WARN', 'SKILL.md', 1, f'name "{name}" differs from its folder "{folder_name}"')
     description = fields.get('description', '')
     if not description:
         add('ERROR', 'SKILL.md', 1, 'frontmatter has no `description`')
@@ -200,17 +222,27 @@ def check_frontmatter(skill, text, add):
     return body_start
 
 
-def check_skill(skill, add):
+def by_convention(parts):
+    """Whether a file (as path parts inside its skill) is found by convention."""
+    return parts[0] in CONVENTION_DIRS or parts[-1].startswith('.') or bool(LICENSE_FILE.match(parts[-1]))
+
+
+def read_text(path):
+    # utf-8-sig drops a byte order mark, which would hide the frontmatter.
+    return path.read_text(encoding='utf-8-sig', errors='replace')
+
+
+def check_skill(skill, add, folder_name):
     skill_md = skill / 'SKILL.md'
-    text = skill_md.read_text(encoding='utf-8')
-    body_start = check_frontmatter(skill, text, add)
+    text = read_text(skill_md)
+    body_start = check_frontmatter(folder_name, text, add)
     body_lines = len(text.splitlines()) - body_start + 1
     if body_lines > BODY_MAX_LINES:
         add('WARN', 'SKILL.md', None, f'body is {body_lines} lines; keep it under {BODY_MAX_LINES} and move details into reference files')
 
     files = sorted(p for p in skill.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.name != '.DS_Store')
     markdown = [p for p in files if p.suffix == '.md']
-    texts = {p: p.read_text(encoding='utf-8', errors='replace') for p in markdown}
+    texts = {p: read_text(p) for p in markdown}
     linked_from = {}  # target path -> set of files that link to it
 
     for md in markdown:
@@ -239,23 +271,32 @@ def check_skill(skill, add):
     # One level deep: every bundled reference, asset, and script should be
     # reachable straight from SKILL.md, by link or by naming its path.
     skill_text = texts[skill_md]
-    script_texts = {p: p.read_text(encoding='utf-8', errors='replace') for p in files if p.suffix in RUNNABLE}
+    script_texts = {p: read_text(p) for p in files if p.suffix in RUNNABLE}
     for path in files:
         rel = path.relative_to(skill).as_posix()
         parts = path.relative_to(skill).parts
-        is_script = len(parts) == 2 and parts[0] == 'scripts' and path.suffix in RUNNABLE and not path.name.startswith('_')
-        if path.name == 'SKILL.md' or not (path.suffix == '.md' or is_script):
+        # Skip SKILL.md, convention files, and the inside of an example skill
+        # bundled as an asset (it is used as a whole).
+        if path == skill_md or by_convention(parts) or enclosing_skill(path.parent, skill):
             continue
-        if is_script:
+        if parts[0] == 'scripts' and path.suffix in RUNNABLE:
+            if len(parts) > 2 or path.name.startswith('_'):
+                continue  # a helper the scripts import
             # Scripts are run, not read, so naming one in any instruction file
-            # is enough; another script importing or calling it is too.
-            if any(path.stem in t for t in texts.values()) or any(path.stem in t for p, t in script_texts.items() if p != path):
+            # is enough; another script calling or importing it is too.
+            # Match whole names, so `check.py` is not named by "checks".
+            named = re.compile(rf'(?<![\w.-]){re.escape(path.name)}\b|\bscripts/{re.escape(path.stem)}\b')
+            imported = re.compile(rf'\b(import|from)\s+{re.escape(path.stem)}\b')
+            if any(named.search(t) for t in texts.values()) or any(
+                    named.search(t) or imported.search(t) for p, t in script_texts.items() if p != path):
                 continue
             add('WARN', rel, None, 'no instruction names this script, so it will never be run')
             continue
         sources = linked_from.get(path.resolve(), set())
         if skill_md in sources or rel in skill_text or path.name in skill_text:
             continue
+        if path.suffix != '.md' and any(path.name in t for t in script_texts.values()):
+            continue  # data a script loads
         mentioned_by = sorted(p.relative_to(skill).as_posix() for p in sources) or [
             m.relative_to(skill).as_posix() for m in markdown if m != path and path.name in texts[m]]
         if mentioned_by:
@@ -279,13 +320,18 @@ def check_skill(skill, add):
 def check_evals(skill, add):
     count = 0
     for path in sorted((skill / 'evals').glob('*.json')) if (skill / 'evals').is_dir() else []:
+        rel = path.relative_to(skill).as_posix()
         try:
-            data = json.loads(path.read_text(encoding='utf-8'))
+            data = json.loads(path.read_text(encoding='utf-8-sig'))
         except (ValueError, UnicodeDecodeError) as error:
-            add('ERROR', path.relative_to(skill).as_posix(), None, f'not valid JSON: {error}')
+            add('ERROR', rel, None, f'not valid JSON: {error}')
             continue
         items = data.get('evals', []) if isinstance(data, dict) else data
-        count += len(items) if isinstance(items, list) else 1
+        found = sum(1 for item in items if isinstance(item, dict) and any(
+            isinstance(item.get(field), str) and item[field].strip() for field in EVAL_QUERY_FIELDS)) if isinstance(items, list) else 0
+        if not found:
+            add('NOTE', rel, None, f'no scenarios found; expected a list of objects with {" or ".join(EVAL_QUERY_FIELDS)}')
+        count += found
     if count == 0:
         add('WARN', 'evals/', None, f'no evaluation scenarios; the guide asks for at least {MIN_EVALS}')
     elif count < MIN_EVALS:
@@ -296,6 +342,8 @@ def check_duplicates(all_files, add):
     """all_files holds (label, skill folder, file); add takes (label, level, path, line, message)."""
     by_hash = {}
     for label, skill, path in all_files:
+        if by_convention(path.relative_to(skill).parts):
+            continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         by_hash.setdefault(digest, []).append((label, skill, path))
     for copies in by_hash.values():
@@ -323,8 +371,8 @@ def main(argv=None):
     def adder(label):
         return lambda level, path, line, message: findings.append(Finding(level, label, path, line, message))
 
-    for label, skill in skills:
-        files = check_skill(skill, adder(label))
+    for label, skill, folder_name in skills:
+        files = check_skill(skill, adder(label), folder_name)
         all_files.extend((label, skill, f) for f in files if f.name != 'SKILL.md')
     check_duplicates(all_files, lambda label, level, path, line, message: findings.append(Finding(level, label, path, line, message)))
 

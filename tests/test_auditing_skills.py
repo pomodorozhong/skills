@@ -125,9 +125,12 @@ class CheckSkillsTests(unittest.TestCase):
         self.assertIn('identical to two/assets/t.md', ' '.join(by_skill['one']))
 
     def test_finds_project_skills_from_repository_root(self):
-        self.skill('repo/.claude/skills/deploy', body='See [the runbook](../../../docs/runbook.md) and [the URL](URL).\n')
+        self.skill('repo/.claude/skills/deploy', body='See [the runbook](../../../docs/runbook.md), [the URL](URL), and [the template](assets/t.md).\n')
         self.write('repo/docs/runbook.md', '# Runbook\n')
-        self.skill('repo/packages/web/.agents/skills/lint')
+        # A shared template gives lint a NOTE, so the findings show it was found.
+        self.skill('repo/packages/web/.agents/skills/lint', body='Use [the template](assets/t.md).\n')
+        self.write('repo/packages/web/.agents/skills/lint/assets/t.md', 'same\n')
+        self.write('repo/.claude/skills/deploy/assets/t.md', 'same\n')
         self.skill('repo/node_modules/pkg/skills/vendored')
         self.skill('repo/.claude/worktrees/copy/.claude/skills/deploy')
         self.skill('repo/.claude/skills/deploy/assets/example')  # a skill's own example, not a skill
@@ -135,7 +138,7 @@ class CheckSkillsTests(unittest.TestCase):
         code, findings = run(self.root / 'repo')
         self.assertEqual(code, 0, findings)
         self.assertEqual(sorted({f['skill'] for f in findings}), ['.claude/skills/deploy', 'packages/web/.agents/skills/lint'])
-        self.assertEqual([f['level'] for f in findings if f['level'] != 'NOTE'], [])
+        self.assertEqual([f for f in findings if f['level'] != 'NOTE'], [])
         outside = [f for f in findings if 'fine for a project skill' in f['message']]
         self.assertEqual(len(outside), 1)
         code, findings = run(self.root / 'linked')
@@ -152,6 +155,75 @@ class CheckSkillsTests(unittest.TestCase):
         _, findings = run(self.root / 'tools')
         flagged = [f['file'] for f in findings if 'never be run' in f['message']]
         self.assertEqual(flagged, ['scripts/unused.py'])
+
+    def test_script_name_must_match_whole(self):
+        self.skill('stem', body='Run the checks.\n')
+        self.write('stem/scripts/check.py', '\n')
+        _, findings = run(self.root / 'stem')
+        self.assertIn('scripts/check.py', [f['file'] for f in findings if 'never be run' in f['message']])
+
+    def test_skill_named_like_a_skipped_folder_is_found(self):
+        self.skill('repo/skills/build')
+        self.skill('repo/build/skills/copy')  # build output, still skipped
+        result = subprocess.run([sys.executable, str(SCRIPT), str(self.root / 'repo')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('in 1 skills', result.stdout)
+
+    def test_unclosed_frontmatter_fails(self):
+        self.write('open/SKILL.md', '---\nname: open\ndescription: Does x. Use when asked.\n' + 'line\n' * 600)
+        code, findings = run(self.root / 'open')
+        self.assertEqual(code, 1)
+        text = ' '.join(self.messages(findings))
+        self.assertIn('no closing `---`', text)
+        self.assertIn('body is', text)
+
+    def test_symlinked_skill_uses_installed_name(self):
+        self.skill('real/foo-dev')
+        (self.root / 'real/foo-dev/SKILL.md').write_text('---\nname: foo\ndescription: Does x. Use when asked.\n---\n')
+        (self.root / 'installed').mkdir()
+        (self.root / 'installed/foo').symlink_to(self.root / 'real/foo-dev')
+        _, findings = run(self.root / 'installed')
+        self.assertNotIn('differs from its folder', ' '.join(self.messages(findings)))
+        _, findings = run(self.root / 'installed/foo')
+        self.assertNotIn('differs from its folder', ' '.join(self.messages(findings)))
+
+    def test_byte_order_mark_is_ignored(self):
+        path = self.skill('bom')
+        skill_md = path / 'SKILL.md'
+        skill_md.write_bytes(b'\xef\xbb\xbf' + skill_md.read_bytes())
+        code, findings = run(path)
+        self.assertEqual(code, 0, findings)
+
+    def test_unlinked_data_files(self):
+        self.skill('data', body='Run `scripts/load.py`. Fill in `assets/form.yaml`.\n')
+        self.write('data/scripts/load.py', "open('references/table.json')\n")
+        self.write('data/references/table.json', '{}\n')
+        self.write('data/assets/form.yaml', 'a: 1\n')
+        self.write('data/assets/orphan.yaml', 'a: 1\n')
+        self.write('data/LICENSE.txt', 'MIT\n')
+        self.write('data/agents/openai.yaml', 'a: 1\n')
+        _, findings = run(self.root / 'data')
+        flagged = [f['file'] for f in findings if 'nothing points' in f['message']]
+        self.assertEqual(flagged, ['assets/orphan.yaml'])
+
+    def test_duplicates_skip_licenses_and_evals(self):
+        for name in ('one', 'two'):
+            self.skill(name)
+            self.write(f'{name}/LICENSE.txt', 'MIT\n')
+        _, findings = run(self.root)
+        self.assertNotIn('identical', ' '.join(self.messages(findings)))
+
+    def test_eval_items_must_be_scenarios(self):
+        self.skill('junk', evals=False)
+        self.write('junk/evals/config.json', '[1, 2, 3]')
+        _, findings = run(self.root / 'junk')
+        text = ' '.join(self.messages(findings))
+        self.assertIn('no scenarios found', text)
+        self.assertIn('no evaluation scenarios', text)
+        self.skill('creator', evals=False)
+        self.write('creator/evals/evals.json', json.dumps({'skill_name': 'creator', 'evals': [{'id': i, 'prompt': p} for i, p in enumerate('abc')]}))
+        _, findings = run(self.root / 'creator')
+        self.assertEqual(findings, [])
 
     def test_no_skills_exits_2(self):
         code, _ = run(self.root)
