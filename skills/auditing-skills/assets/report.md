@@ -4,9 +4,9 @@ Audited <N> skills (<names>) against the guide (<read fresh on DATE | checklist 
 
 ## Summary
 
-| # | Point | Verdict | Skills affected |
+| # | Point | Verdict | Skills affected or note |
 | --- | --- | --- | --- |
-| 1 | Concise | ✅/⚠️/❌/N/A | <skills, or "all"> |
+| 1 | Concise | ✅/⚠️/❌/N/A | <skills with ⚠️ or ❌; for N/A, why; blank for ✅> |
 
 ## Findings
 
