@@ -1,5 +1,5 @@
 ---
-name: macos-application-data-storage
+name: applying-macos-storage-defaults
 description: "Design or review file storage for macOS apps: where app data, caches, logs, preferences, temporary files, and user-owned files go (~/Library/Application Support, Caches, Logs, UserDefaults, sandbox containers), and when to ask before migrating a legacy layout. Use when creating a macOS app, designing its storage, or changing code that decides where it stores files, not for a feature that only reads or writes a file."
 ---
 

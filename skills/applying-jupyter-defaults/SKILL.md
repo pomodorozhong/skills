@@ -1,16 +1,16 @@
 ---
-name: jupyter-project-defaults
-description: Create, edit, or review Jupyter notebooks for clear learning and reliable GitHub rendering. Use for `.ipynb` work that should pair nearby Markdown explanations with code, favor static plots, and minimize widgets. Requires `python-project-defaults` installed alongside this skill.
+name: applying-jupyter-defaults
+description: Create, edit, or review Jupyter notebooks for clear learning and reliable GitHub rendering. Use for `.ipynb` work that should pair nearby Markdown explanations with code, favor static plots, and minimize widgets. Requires `applying-python-defaults` installed alongside this skill.
 ---
 
 # Jupyter Project Defaults
 
 ## Python Project Foundation
 
-Before installing dependencies, configuring the environment, or running Python and Jupyter commands, read and apply [python-project-defaults](../python-project-defaults/SKILL.md). Treat that skill as the single source of truth for dependency management and execution; do not duplicate or override its uv-first fallback policy here.
+Before installing dependencies, configuring the environment, or running Python and Jupyter commands, read and apply [applying-python-defaults](../applying-python-defaults/SKILL.md). Treat that skill as the single source of truth for dependency management and execution; do not duplicate or override its uv-first fallback policy here.
 
 - Add Jupyter, kernels, plotting packages, and notebook dependencies through the shared Python project workflow.
-- Run Jupyter and notebook execution commands using the project environment and execution workflow selected by `python-project-defaults`.
+- Run Jupyter and notebook execution commands using the project environment and execution workflow selected by `applying-python-defaults`.
 - Do not use `%pip`, `!pip`, or ad hoc installation cells inside the notebook.
 - If the referenced Python defaults skill is unavailable, stop and tell the user rather than inventing a separate dependency workflow.
 
@@ -45,4 +45,4 @@ Use plots often when a visual can improve understanding of data, behavior, compa
 
 ## Verification
 
-Restart the kernel, then run the notebook from top to bottom using the project environment selected by `python-project-defaults`. Confirm that it completes without unintended errors, that outputs are current, that Markdown remains close to the code and figures it explains, and that every widget-dependent idea has a static GitHub-readable fallback.
+Restart the kernel, then run the notebook from top to bottom using the project environment selected by `applying-python-defaults`. Confirm that it completes without unintended errors, that outputs are current, that Markdown remains close to the code and figures it explains, and that every widget-dependent idea has a static GitHub-readable fallback.

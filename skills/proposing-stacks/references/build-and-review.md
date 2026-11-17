@@ -4,7 +4,7 @@ Read this after the user approves the plan (step 2 of [SKILL.md](../SKILL.md)) a
 
 ## 3. Build the stack
 
-- Fetch, then fast-forward the local default branch to `origin/<default>`, because `gh stack init` builds on the local branch: `git fetch origin <default>:<default>`, or `git merge --ff-only origin/<default>` where it is checked out. If it cannot fast-forward, stop and ask. Then run `git config rerere.enabled true` and start the stack with `gh stack init --base <default> <first branch>`. Follow the [commit](../../commit/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
+- Fetch, then fast-forward the local default branch to `origin/<default>`, because `gh stack init` builds on the local branch: `git fetch origin <default>:<default>`, or `git merge --ff-only origin/<default>` where it is checked out. If it cannot fast-forward, stop and ask. Then run `git config rerere.enabled true` and start the stack with `gh stack init --base <default> <first branch>`. Follow the [committing](../../committing/SKILL.md) skill for staging, splitting, commit messages, and checks; it never pushes here.
 - Build the PRs in order: commit each PR's work on its own branch, then `gh stack add <next branch>` to start the next one on top.
 - Implement the approved plan only. If the plan turns out wrong (a PR is much bigger than expected, or needs a PR above it), stop and ask before changing the plan.
 

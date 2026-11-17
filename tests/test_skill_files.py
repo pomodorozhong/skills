@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ROOT / 'skills'
-AGENTS_BLOCK = SKILLS / 'handoff' / 'assets' / 'agents-handoff.md'
+AGENTS_BLOCK = SKILLS / 'writing-handoffs' / 'assets' / 'agents-handoff.md'
 
 # Relative Markdown link targets; web links and same-file anchors are skipped.
 RELATIVE_LINK = re.compile(r'\]\((?!https?://|#)([^)#\s]+)')

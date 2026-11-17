@@ -1,5 +1,5 @@
 ---
-name: commit
+name: committing
 description: Create atomic Conventional Commits while preserving unrelated work and checking branch safety. Use whenever preparing or making a commit.
 ---
 

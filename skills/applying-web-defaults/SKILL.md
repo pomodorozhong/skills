@@ -1,5 +1,5 @@
 ---
-name: web-project-defaults
+name: applying-web-defaults
 description: Apply npm-first tooling, Tailwind CSS, and project layout defaults when creating, configuring, or maintaining web projects, such as a frontend app, a static site, or a project with a `package.json` (Vite, React, Next.js, and similar). Use when package management, build scripts, local serving, styling, or file organization choices are in scope and the user has not requested a conflicting stack.
 ---
 
