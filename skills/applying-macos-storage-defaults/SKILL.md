@@ -15,15 +15,7 @@ Classify every stored item before choosing a path:
 - Logs: diagnostic logs under the per-user Logs directory, or use the platform's unified logging system for a native macOS app. Never treat logs as user documents.
 - Preferences: small settings only, using UserDefaults or the platform preferences mechanism. Do not put media, databases, caches, or job payloads in preferences. Read and write preferences only through that API: never edit the preference `.plist` files directly, because the system caches them and can overwrite or ignore direct edits.
 - Short-lived intermediates: use the system temporary directory for scratch files that never become user files, and clean them up when possible. Never use a repository `tmp/` directory as an application-wide temporary store.
-- Files being saved: write the new file completely on the same volume as its destination, then replace the destination in one rename, so an interrupted save leaves the previous version intact. A rename cannot cross volumes, so do not write in the system temporary directory and move the result to a user folder that may be on another drive. In a native app, use `data.write(to: destination, options: .atomic)`, `NSDocument`, or a directory from `FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: destination, create: true)` with `FileManager.default.replaceItemAt(destination, withItemAt: newFile)`; `replaceItemAt` also keeps the original file's permissions, extended attributes, and Finder tags. In a cross-platform app:
-
-  1. Resolve the destination through any symlinks first, so the save replaces the real file instead of turning the link into a separate copy.
-  2. Create the temporary file in that resolved file's directory, write it, flush it, and `fsync` it.
-  3. Copy the original file's permissions and extended attributes (which hold Finder tags) onto the temporary file, because a rename gives the destination the temporary file's metadata.
-  4. Rename the temporary file over the destination with `os.replace` or `rename(2)`, then `fsync` the containing directory so the rename itself survives a power loss.
-  5. Delete the temporary file if any step fails.
-
-  A rename breaks hard links to the original file; if the app must keep them, write in place behind a backup copy instead.
+- Files being saved: write the new file completely on the same volume as its destination, then replace the destination in one rename, so an interrupted save leaves the previous version intact. A rename cannot cross volumes, so do not write in the system temporary directory and move the result to a user folder that may be on another drive. Before writing or changing save code, read [the safe-save guide](references/atomic-save.md).
 
 On macOS, the conventional roots are:
 
