@@ -1,5 +1,5 @@
 ---
-name: handoff
+name: writing-handoffs
 description: Keep a project's HANDOFF.md current so any session, worktree, or computer can resume work, with issue handoff notes, ranked work, pending approvals, durable docs, and verified Git checkpoints. Use when the user says "wrap up", "let's stop here", "end the session", "hand off", or similar.
 ---
 
@@ -9,7 +9,7 @@ Leave the project so the next session can resume without this conversation. `HAN
 
 The rules for `HANDOFF.md` that every session follows live in [the AGENTS.md template](assets/agents-handoff.md) and [the working rules](references/working-rules.md); read them first. This skill adds the end-of-session procedure. [An example `HANDOFF.md`](assets/HANDOFF.md) shows the format.
 
-**Opening a PR:** use the `open-pr` skill and skip the steps below.
+**Opening a PR:** use the `opening-prs` skill and skip the steps below.
 
 **Docs folder:** use `docs/`, unless the repo already has a `doc/` folder; then use `doc/` and do not create `docs/`. Below, `<docs>` means that folder.
 
@@ -43,7 +43,7 @@ Create it from the example's headings if it is missing. If `.agents/next-steps.m
 - **This branch's subsection:** replace it with the current state, following the working rules' field list. Replace stale content instead of adding to it. On the default branch with no work branch, there is no subsection; see step 7.
 - **Ranked work:** one line per issue or local task, with an optional short reason. Drop closed items, add new ones, and re-order only when priorities changed. Put blocking decisions before dependent work; keep unrelated unblocked work visible. Work awaiting the user's confirmation is a pending request, not a ranked line. If nothing is in progress, the top item is the next task.
 - **Pending:** record each request in the format the [working rules](references/working-rules.md#approval-requests) describe, keeping its ID while it is unresolved. Include issue drafts and unconfirmed proposals, such as a planned PR stack, in full with every open question.
-- **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, use the `open-pr` skill; approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
+- **Resolve requests:** apply available authorization without asking again for the same scope. Approved: perform the action (for a PR, use the `opening-prs` skill; approval of a branch and body already shown goes straight to its step 5) and remove the entry after success; if it fails, keep it with the failure and next action. Rejected: remove it. Unanswered: keep it. Record resulting decisions on the relevant issue or in `<docs>/`.
 - **Cleanup:** remove subsections of branches whose PR has merged or closed, moving anything still unresolved in them to the issue or to `Pending`. Merged branches are not cleaned up before they merge; the next session does it here.
 
 ## 4. Clean up branches
@@ -72,10 +72,10 @@ Read [the AGENTS.md template](assets/agents-handoff.md) and the project's root `
 
 ## 7. Save, verify, and report
 
-- Use the `commit` skill. Put `HANDOFF.md`, `<docs>/`, and `AGENTS.md` updates in a `docs:` commit on the work branch, separate from source commits. Commit only when there are changes.
+- Use the `committing` skill. Put `HANDOFF.md`, `<docs>/`, and `AGENTS.md` updates in a `docs:` commit on the work branch, separate from source commits. Commit only when there are changes.
 - **No work branch** (on the default branch): create the next ranked task's branch from its issue as the working rules describe, and commit there. If there is no next task, leave the changes uncommitted and report them.
 - If unfinished source changes remain uncommitted, note the files in the branch subsection and report them. Do not imply that committing `HANDOFF.md` also saved them.
-- Push only within the user's existing authorization; otherwise record the push request in the branch subsection. Creating a PR needs its own authorization; open it with the `open-pr` skill. Pushing also publishes the branch's earlier unpushed commits.
+- Push only within the user's existing authorization; otherwise record the push request in the branch subsection. Creating a PR needs its own authorization; open it with the `opening-prs` skill. Pushing also publishes the branch's earlier unpushed commits.
 - Before reporting, inspect the final working tree and confirm which commits were pushed. Say plainly when another computer cannot retrieve the handoff or the work yet.
 - Use the reply template below; it lists requests still awaiting approval. If the user answers afterwards, resolve them as in step 3 and save the result normally.
 

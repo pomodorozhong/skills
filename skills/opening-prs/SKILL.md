@@ -1,5 +1,5 @@
 ---
-name: open-pr
+name: opening-prs
 description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use when the user asks to open, file, or create a PR.
 ---
 
@@ -36,8 +36,8 @@ Stop and wait for "go" or edits. Apply precise edits without asking again; show 
 
 ## 3. Build
 
-- Implement the approved plan only. Follow the [commit](../commit/SKILL.md) skill for staging, splitting, commit messages, and branch safety.
-- Preserve unrelated changes. If the branch's PR has merged or closed, follow the commit skill's fresh-branch rule.
+- Implement the approved plan only. Follow the [committing](../committing/SKILL.md) skill for staging, splitting, commit messages, and branch safety.
+- Preserve unrelated changes. If the branch's PR has merged or closed, follow the committing skill's fresh-branch rule.
 - Rebase only unpublished commits, and only when it helps; being behind the default branch is not a reason by itself.
 - Run the project's documented checks on the final branch. Report failures; do not bypass hooks.
 

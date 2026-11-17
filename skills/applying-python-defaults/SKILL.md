@@ -1,5 +1,5 @@
 ---
-name: python-project-defaults
+name: applying-python-defaults
 description: Apply uv-first dependency management and execution defaults when creating, configuring, installing, locking, or running Python projects and tools. Use Homebrew only when uv is not an option, then stop and consult the user if neither can satisfy the need.
 ---
 

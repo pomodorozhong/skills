@@ -7,8 +7,8 @@ This guide covers editing, backing up, and installing the skills in this reposit
 [`scripts/link.sh`](../scripts/link.sh) links each skill in `skills/` into the folders the agents read:
 
 ```text
-~/.agents/skills/commit  -> ~/repo/skills/skills/commit   (Codex)
-~/.claude/skills/commit  -> ~/repo/skills/skills/commit   (Claude Code)
+~/.agents/skills/committing  -> ~/repo/skills/skills/committing   (Codex)
+~/.claude/skills/committing  -> ~/repo/skills/skills/committing   (Claude Code)
 ```
 
 Both agents read the repository's files, so an edit made anywhere, by you or by an agent, is already in the repository. To back it up, commit and push. Every skill lives in `skills/`, which is also what `npx skills add` installs for other people.
