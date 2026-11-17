@@ -21,6 +21,7 @@ Standard library only, so it runs wherever Python 3.8 or later runs.
 import argparse
 import datetime
 import hashlib
+import http.client
 import json
 import re
 import sys
@@ -117,6 +118,11 @@ def load_snapshot():
         return None, f'The snapshot at {SNAPSHOT} is unreadable ({error})'
     if not isinstance(snapshot, dict) or any(key not in snapshot for key in SNAPSHOT_KEYS):
         return None, f'The snapshot at {SNAPSHOT} lacks one of {", ".join(SNAPSHOT_KEYS)}'
+    sections = snapshot['sections']
+    if (not isinstance(snapshot['checked'], str) or not isinstance(snapshot['sha256'], str)
+            or not isinstance(sections, dict)
+            or not all(isinstance(value, str) for value in sections.values())):
+        return None, f'The snapshot at {SNAPSHOT} has a field of the wrong type'
     return snapshot, None
 
 
@@ -129,7 +135,8 @@ def main(argv=None):
     snapshot, problem = load_snapshot()
     try:
         markdown = fetch()
-    except (urllib.error.URLError, OSError, UnicodeDecodeError) as error:
+    # HTTPException covers a cut-off response (IncompleteRead), which is not an OSError.
+    except (urllib.error.URLError, OSError, http.client.HTTPException, UnicodeDecodeError) as error:
         when = f'snapshot of {snapshot["checked"]}' if snapshot else f'{problem.lower()}; date unknown'
         print(f'Could not fetch {GUIDE_URL}: {error}. Audit with the checklist ({when}) and say so.')
         return 2

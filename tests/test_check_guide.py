@@ -4,6 +4,7 @@ The guide is never fetched: each test swaps in its own Markdown and snapshot
 path. Run from the repo root: python3 -m unittest discover tests
 """
 import contextlib
+import http.client
 import importlib.util
 import io
 import json
@@ -91,13 +92,24 @@ class CheckGuideTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn('Audit with the checklist (snapshot of ', out)
 
+    def test_cut_off_response_exits_2(self):
+        self.run_with(GUIDE, '--update')
+        code, out = self.run_with(http.client.IncompleteRead(b'partial'))
+        self.assertEqual(code, 2)
+        self.assertIn('Could not fetch', out)
+
     def test_nested_fences_keep_headings_as_code(self):
         guide = GUIDE + '\n## Fences\n\n````markdown\n```\n## Not a section either\n```\n````\n\n~~~\n```\n## Nor this\n~~~\n\n## After\n\nText.\n'
         names = list(check_guide.sections(guide))
         self.assertEqual(names[-2:], ['Fences', 'After'])
 
     def test_unreadable_snapshot_exits_3(self):
-        for text in ('{not json', '{"checked": "2026-01-01"}'):
+        wrong_types = (
+            '{"checked": "2026-01-01", "sha256": "x", "sections": []}',
+            '{"checked": "2026-01-01", "sha256": "x", "sections": {"a": 1}}',
+            '{"checked": 1, "sha256": "x", "sections": {}}',
+        )
+        for text in ('{not json', '{"checked": "2026-01-01"}') + wrong_types:
             self.snapshot.write_text(text)
             code, out = self.run_with(GUIDE)
             self.assertEqual(code, 3, out)
