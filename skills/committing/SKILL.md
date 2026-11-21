@@ -29,10 +29,10 @@ If the changes do one thing, make one commit with only the files that belong to 
 <body: what changed and why>
 ```
 
-- Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`. Use `!` after the scope plus a `BREAKING CHANGE:` footer for breaking changes. When the type is unclear, such as for a removal, a rename, or a change to instruction files, see [the commit type guide](references/commit-types.md).
+- Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `revert`. Use `!` after the scope plus a `BREAKING CHANGE:` footer for breaking changes. When the type is unclear, such as for a removal, a rename, or a change to instruction files, see [the commit type guide](references/commit-types.md). The guide decides the type even where older commits in the history used another one for the same kind of change.
 - Scope: optional; the area touched, following the existing history (`git log --oneline -20`).
 - Summary: imperative mood, lowercase, no trailing period, at most ~72 characters.
-- Body: explain the reason and the user-visible effect, not a file list. Reference issues as `#N` where relevant. Optional for trivial changes.
+- Body: explain the reason and the effect on users, not a file list. Users are whoever relies on the result, including an agent that follows a skill. Reference issues as `#N` where relevant. Optional for trivial changes.
 - Line breaks: write each body paragraph as one line and separate paragraphs with a blank line. Do not hard-wrap at 72 columns; viewers wrap text themselves, and hard breaks show as ragged mid-sentence breaks. List items and trailers stay one per line.
 
 ## 4. Verify
