@@ -29,7 +29,7 @@ If the changes do one thing, make one commit with only the files that belong to 
 <body: what changed and why>
 ```
 
-- Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`. Use `!` after the scope plus a `BREAKING CHANGE:` footer for breaking changes.
+- Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`. Use `!` after the scope plus a `BREAKING CHANGE:` footer for breaking changes. When the type is unclear, such as for a removal, a rename, or a change to instruction files, see [the commit type guide](references/commit-types.md).
 - Scope: optional; the area touched, following the existing history (`git log --oneline -20`).
 - Summary: imperative mood, lowercase, no trailing period, at most ~72 characters.
 - Body: explain the reason and the user-visible effect, not a file list. Reference issues as `#N` where relevant. Optional for trivial changes.
