@@ -1,6 +1,6 @@
 ---
 name: proposing-stacks
-description: Propose the next few PRs from a project's issues, milestones, and HANDOFF.md, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR.
+description: Propose the next few PRs from a project's issues, milestones, and handoff notes, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR.
 ---
 
 # Propose a stack
@@ -35,7 +35,7 @@ Show everything the user needs to decide (the plan, the questions, each PR's tit
 
 Read, and change nothing:
 
-- `README`, `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, contributing docs, and the docs folder (`docs/` or `doc/`), including roadmaps, plans, and changelogs.
+- `README`, `AGENTS.md`, `CLAUDE.md`, the handoff notes (`HANDOFF.md`, or wherever the session's instructions say they are kept), contributing docs, and the docs folder (`docs/` or `doc/`), including roadmaps, plans, and changelogs.
 - Open issues with their labels, milestones, and comments; read closed issues only when an open one depends on them. Note `needs-decision` labels and "Blocked by #N" notes.
 - Milestones and their descriptions: what each is for, what it waits on, and its due date.
 - Open PRs and remote branches, so the proposal does not repeat work already in flight. `gh stack view --json` shows only the stack of the checked-out branch, and exits with code 2 when that branch is in none; list the repository's other stacks with `gh api repos/<owner>/<repo>/stacks`.
@@ -47,7 +47,7 @@ If a search or listing fails, say so instead of claiming there is nothing.
 
 ## 2. Propose the stack
 
-Pick up to five PRs that move the project toward its stated next goal, usually the earliest open milestone or the top of `HANDOFF.md`'s ranked work. Propose fewer when the work does not split naturally; never pad the stack.
+Pick up to five PRs that move the project toward its stated next goal, usually the earliest open milestone or the top of the handoff notes' ranked work. Propose fewer when the work does not split naturally; never pad the stack.
 
 **Order the stack.** A PR can use everything below it and nothing above it. Put anything a PR needs below it: foundations (data models, library code, refactors that make room) before the features, UI, and docs that use them. Among PRs that do not need each other, put the simplest first (fewest lines and files changed), so the bottom of the stack can be reviewed and merged soonest.
 
