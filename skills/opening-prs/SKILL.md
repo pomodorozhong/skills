@@ -1,6 +1,6 @@
 ---
 name: opening-prs
-description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use when the user asks to open, file, or create a PR.
+description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill.
 ---
 
 # Open a PR
@@ -12,6 +12,8 @@ Ask for each approval in chat and wait for a reply; silence is not approval. An 
 **Already approved:** if the user already approved this exact branch tip and body (for example, in a recorded pending request), go straight to step 5.
 
 ## 1. Gather context
+
+A PR draft written earlier without this skill is not approved: start here and rewrite it with the template before asking to publish.
 
 - Read the branch's linked issue (`gh issue develop --list <N>`) and the working tree, commits, and full diff against the default branch.
 - Fetch the default branch and report how far the branch is behind and ahead (`git rev-list --left-right --count origin/<default>...HEAD`).
