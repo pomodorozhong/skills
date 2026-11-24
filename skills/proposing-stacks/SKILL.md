@@ -83,7 +83,7 @@ Check that each PR works with only the PRs below it before showing it for review
 
 ## 5. Review request
 
-Write each PR's title and body, fill in [the review request template](assets/review-request.md), save it and the bodies in the working files, and create the local review branch `propose-stack/review-<summary>` on top of the top PR branch with plain `git`. Ask for feedback and stop.
+Write each PR's title and body (use the repository's PR template if it has one, otherwise [the PR body template](assets/pr-body.md)), fill in [the review request template](assets/review-request.md), save it and the bodies in the working files, and create the local review branch `propose-stack/review-<summary>` on top of the top PR branch with plain `git`. Ask for feedback and stop.
 
 ## 6. Collect feedback on the review branch
 
