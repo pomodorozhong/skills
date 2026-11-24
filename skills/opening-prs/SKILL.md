@@ -1,6 +1,6 @@
 ---
 name: opening-prs
-description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use when the user asks to open, file, or create a PR.
+description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill. Not for PRs opened by another skill that has its own approval steps.
 ---
 
 # Open a PR
@@ -9,9 +9,11 @@ Turn a requested change into a GitHub PR with two approvals: the user approves a
 
 Ask for each approval in chat and wait for a reply; silence is not approval. An unanswered request stays open: name it again in any later status or closing report until the user answers.
 
-**Already approved:** if the user already approved this exact branch tip and body (for example, in a recorded pending request), go straight to step 5.
+**Already approved:** if the user already approved this exact branch tip and a body this skill wrote and showed in a step 4 summary (for example, in a recorded pending request), go straight to step 5. Approval of a draft written without this skill doesn't count; start at step 1.
 
 ## 1. Gather context
+
+A PR draft written earlier without this skill is not approved: start here, and in step 4 rewrite it following [Title and body](#title-and-body), keeping any wording or changes the user asked for.
 
 - Read the branch's linked issue (`gh issue develop --list <N>`) and the working tree, commits, and full diff against the default branch.
 - Fetch the default branch and report how far the branch is behind and ahead (`git rev-list --left-right --count origin/<default>...HEAD`).
@@ -28,7 +30,7 @@ Otherwise show a plan detailed enough to catch a wrong task before any work star
 
 - The change: what will behave differently, and which files or components it touches.
 - The issue it covers, and whether it fully resolves it.
-- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it).
+- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it). Pick the type with the `committing` skill's commit type guide and give a one-line reason, since the branch, the commits, and the title all use it.
 - The checks that will be run.
 - Assumptions, and questions that block the plan.
 
@@ -36,7 +38,7 @@ Stop and wait for "go" or edits. Apply precise edits without asking again; show 
 
 ## 3. Build
 
-- Implement the approved plan only. Follow the [committing](../committing/SKILL.md) skill for staging, splitting, commit messages, and branch safety.
+- Implement the approved plan only. Load the `committing` skill before the first commit, then follow it for staging, splitting, commit messages, and branch safety.
 - Preserve unrelated changes. If the branch's PR has merged or closed, follow the committing skill's fresh-branch rule.
 - Rebase only unpublished commits, and only when it helps; being behind the default branch is not a reason by itself.
 - Run the project's documented checks on the final branch. Report failures; do not bypass hooks.
@@ -70,7 +72,7 @@ Opening a PR does not authorize merging, force-pushing, or further changes.
 
 Use the repository's PR template if it has one; otherwise fill in [the PR body template](assets/pr-body.md).
 
-- **Title:** the concrete change in Conventional Commit style when that fits the repo. No issue references in the title.
+- **Title:** the concrete change in Conventional Commit style when that fits the repo. No issue references in the title. Check the type with the `committing` skill's commit type guide even when the branch and commits already exist; if the commits or branch name use another type, say so in the step 4 summary and propose fixing them.
 - **Body:** written for a reviewer who has not seen the conversation, from the final diff and real results only. Never invent results or issue links.
 - **Verification:** list commands actually run and their outcomes, separately from checks not run and why. For user-visible changes, give reproducible steps with expected results, and mark which you ran (`Verified`) and which are left to the reviewer (`Reviewer follow-up`).
 - **Issues:** use `Closes #N` only when the PR fully resolves the issue and targets the default branch; otherwise use `Related to #N` with the relationship, and make sure the branch isn't linked to that issue. Use `owner/repo#N` for other repositories. See [GitHub's linking rules](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue).
