@@ -7,7 +7,7 @@ description: Create, edit, or review Jupyter notebooks for clear learning and re
 
 ## Python Project Foundation
 
-Before installing dependencies, configuring the environment, or running Python and Jupyter commands, read and apply [applying-python-defaults](../applying-python-defaults/SKILL.md). Treat that skill as the single source of truth for dependency management and execution; do not duplicate or override its uv-first fallback policy here.
+Before installing dependencies, configuring the environment, or running Python and Jupyter commands, read and apply `applying-python-defaults`. Treat that skill as the single source of truth for dependency management and execution; do not duplicate or override its uv-first fallback policy here.
 
 - Add Jupyter, kernels, plotting packages, and notebook dependencies through the shared Python project workflow.
 - Run Jupyter and notebook execution commands using the project environment and execution workflow selected by `applying-python-defaults`.

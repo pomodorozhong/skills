@@ -1,6 +1,6 @@
 ---
 name: proposing-stacks
-description: Propose the next few PRs from a project's issues, milestones, and handoff notes, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR.
+description: Propose the next few PRs from a project's issues, milestones, and handoff notes, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR. Requires `committing` installed alongside this skill.
 ---
 
 # Propose a stack
@@ -83,7 +83,7 @@ Check that each PR works with only the PRs below it before showing it for review
 
 ## 5. Review request
 
-Write each PR's title and body, fill in [the review request template](assets/review-request.md), save it and the bodies in the working files, and create the local review branch `propose-stack/review-<summary>` on top of the top PR branch with plain `git`. Ask for feedback and stop.
+Write each PR's title and body (use the repository's PR template if it has one, otherwise [the PR body template](assets/pr-body.md)), fill in [the review request template](assets/review-request.md), save it and the bodies in the working files, and create the local review branch `propose-stack/review-<summary>` on top of the top PR branch with plain `git`. Ask for feedback and stop.
 
 ## 6. Collect feedback on the review branch
 

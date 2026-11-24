@@ -1,6 +1,6 @@
 ---
 name: opening-prs
-description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill. Not for PRs opened by another skill that has its own approval steps.
+description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill. Not for PRs opened by another skill that has its own approval steps. Requires `committing` installed alongside this skill.
 ---
 
 # Open a PR
