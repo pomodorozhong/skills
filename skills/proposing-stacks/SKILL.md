@@ -1,6 +1,6 @@
 ---
 name: proposing-stacks
-description: Propose the next few PRs from a project's issues, milestones, and handoff notes, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR.
+description: Propose the next few PRs from a project's issues, milestones, and handoff notes, build them as a stack of branches with `gh stack`, and publish them as stacked PRs on GitHub. Use when the user asks what to work on next as PRs or for a stack of PRs, or asks to show, update, or merge an existing stack, such as after a PR in it merges or the stack falls behind. Not for opening a single PR. Requires `committing` installed alongside this skill.
 ---
 
 # Propose a stack
