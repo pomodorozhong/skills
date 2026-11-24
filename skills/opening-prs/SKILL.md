@@ -30,7 +30,7 @@ Otherwise show a plan detailed enough to catch a wrong task before any work star
 
 - The change: what will behave differently, and which files or components it touches.
 - The issue it covers, and whether it fully resolves it.
-- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it).
+- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it). Pick the type with the `committing` skill's commit type guide and give a one-line reason, since the branch, the commits, and the title all use it.
 - The checks that will be run.
 - Assumptions, and questions that block the plan.
 
@@ -38,7 +38,7 @@ Stop and wait for "go" or edits. Apply precise edits without asking again; show 
 
 ## 3. Build
 
-- Implement the approved plan only. Follow the [committing](../committing/SKILL.md) skill for staging, splitting, commit messages, and branch safety.
+- Implement the approved plan only. Load the `committing` skill before the first commit, then follow it for staging, splitting, commit messages, and branch safety.
 - Preserve unrelated changes. If the branch's PR has merged or closed, follow the committing skill's fresh-branch rule.
 - Rebase only unpublished commits, and only when it helps; being behind the default branch is not a reason by itself.
 - Run the project's documented checks on the final branch. Report failures; do not bypass hooks.
