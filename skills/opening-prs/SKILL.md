@@ -1,11 +1,11 @@
 ---
 name: opening-prs
-description: Turn a requested change into a GitHub PR with two approvals, a detailed plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill. Not for PRs opened by another skill that has its own approval steps. Requires `committing` installed alongside this skill.
+description: Turn a requested change into a GitHub PR with two approvals, a plan before any work and the finished branch, title, and body before anything is pushed. Use whenever a PR is about to be opened: when the user asks to open, file, create, or make a PR, approves or edits a PR draft, or before running `gh pr create`, even if a draft was written earlier without this skill. Not for PRs opened by another skill that has its own approval steps. Requires `committing` installed alongside this skill.
 ---
 
 # Open a PR
 
-Turn a requested change into a GitHub PR with two approvals: the user approves a detailed plan before any work, then approves the finished branch before anything is pushed. Approving the plan never authorizes a push.
+Turn a requested change into a GitHub PR with two approvals: the user approves a plan before any work, then approves the finished branch before anything is pushed. Approving the plan never authorizes a push.
 
 Ask for each approval in chat and wait for a reply; silence is not approval. An unanswered request stays open: name it again in any later status or closing report until the user answers.
 
@@ -26,13 +26,14 @@ A PR draft written earlier without this skill is not approved: start here, and i
 
 If the changes already exist, skip to step 4.
 
-Otherwise show a plan detailed enough to catch a wrong task before any work starts:
+Otherwise show a plan that lets the user catch a wrong task before any work starts. The plan is for the user deciding now, not for a reviewer later, so never write it as a PR body or fill in the PR template: nothing has been built yet, so there are no changes or results to report. Size it to the change, and leave out any section with nothing to say; a one-line fix can be a three-line plan.
 
-- The change: what will behave differently, and which files or components it touches.
-- The issue it covers, and whether it fully resolves it.
-- The branch: reuse the current one, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it). Pick the type with the `committing` skill's commit type guide and give a one-line reason, since the branch, the commits, and the title all use it.
-- The checks that will be run.
-- Assumptions, and questions that block the plan.
+- **Open questions and assumptions:** put these first when they block the plan.
+- **Goal:** what will behave differently, the issue it covers, and whether it fully resolves it.
+- **Approach:** the steps, or the one key design choice. Name alternatives only when there is a real choice for the user to make.
+- **Scope:** the files or components it touches, and anything nearby it deliberately leaves alone.
+- **Branch and title:** reuse the current branch, or create one following the repo's conventions in its `AGENTS.md` or contributing docs (default `<type>/<summary>`, linked to its issue only if the PR will fully resolve it), plus a draft PR title. Pick the type with the `committing` skill's commit type guide and give a one-line reason, since the branch, the commits, and the title all use it.
+- **Checks:** the checks that will be run, and any manual check of the result.
 
 Stop and wait for "go" or edits. Apply precise edits without asking again; show the revised plan for substantive ones.
 
@@ -50,7 +51,7 @@ Write the title and body following [the rules below](#title-and-body), then show
 - Branch, base, and how far behind and ahead.
 - Commits (short hash and subject).
 - Check results, including failed, skipped, or not run.
-- Differences from the approved plan.
+- Differences from the approved plan's goal, approach, scope, branch, or title.
 - Draft or ready status.
 - The issues that merging will close, including ones closed only by a branch link. If the PR won't fully resolve one of them, say so and propose removing the branch link before publishing (the `deleteLinkedBranch` GraphQL mutation, or the issue's Development sidebar).
 - The title and full body.
@@ -73,6 +74,6 @@ Opening a PR does not authorize merging, force-pushing, or further changes.
 Use the repository's PR template if it has one; otherwise fill in [the PR body template](assets/pr-body.md).
 
 - **Title:** the concrete change in Conventional Commit style when that fits the repo. No issue references in the title. Check the type with the `committing` skill's commit type guide even when the branch and commits already exist; if the commits or branch name use another type, say so in the step 4 summary and propose fixing them.
-- **Body:** written for a reviewer who has not seen the conversation, from the final diff and real results only. Never invent results or issue links.
+- **Body:** written for a reviewer who has not seen the conversation, from the final diff and real results only. Write it fresh in step 4 rather than reworking the plan's text. Never invent results or issue links.
 - **Verification:** list commands actually run and their outcomes, separately from checks not run and why. For user-visible changes, give reproducible steps with expected results, and mark which you ran (`Verified`) and which are left to the reviewer (`Reviewer follow-up`).
 - **Issues:** use `Closes #N` only when the PR fully resolves the issue and targets the default branch; otherwise use `Related to #N` with the relationship, and make sure the branch isn't linked to that issue. Use `owner/repo#N` for other repositories. See [GitHub's linking rules](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue).
