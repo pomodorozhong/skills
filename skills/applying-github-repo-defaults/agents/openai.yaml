@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Repo Defaults"
+  short_description: "Check a repo's GitHub settings and apply approved fixes"
+  default_prompt: "Use $applying-github-repo-defaults to check this repository's GitHub settings."
