@@ -1,0 +1,48 @@
+{
+  "repo": {
+    "delete_branch_on_merge": {
+      "want": true,
+      "why": "Merged PR branches are deleted on GitHub, so they don't pile up."
+    },
+    "allow_squash_merge": {
+      "want": true,
+      "why": "Each PR lands on the default branch as one commit."
+    },
+    "allow_merge_commit": {
+      "want": false,
+      "why": "Squash only keeps the default branch's history linear and one commit per PR."
+    },
+    "allow_rebase_merge": {
+      "want": false,
+      "why": "Squash only keeps the default branch's history linear and one commit per PR."
+    }
+  },
+  "security_and_analysis": {
+    "secret_scanning": {
+      "want": "enabled",
+      "why": "GitHub alerts on API keys and tokens committed by mistake."
+    },
+    "secret_scanning_push_protection": {
+      "want": "enabled",
+      "why": "Pushes that contain a known secret are blocked before they reach GitHub."
+    }
+  },
+  "actions_workflow_permissions": {
+    "default_workflow_permissions": {
+      "want": "read",
+      "why": "Workflows get a read-only token unless a workflow asks for more."
+    },
+    "can_approve_pull_request_reviews": {
+      "want": false,
+      "why": "A workflow can't approve its own or anyone's PR."
+    }
+  },
+  "description": {
+    "want": "not empty",
+    "why": "The repo list and search results show what the repo is for."
+  },
+  "ruleset": {
+    "file": "ruleset.json",
+    "why": "The default branch can't be deleted or force-pushed, and changes reach it only through a squash-merged PR."
+  }
+}
