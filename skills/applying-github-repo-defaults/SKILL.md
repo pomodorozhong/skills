@@ -17,7 +17,7 @@ python3 <this skill's folder>/scripts/check_repo.py <owner>/<repo>
 
 The script reads the settings with `gh api` and prints each setting that is not `ok`:
 
-- `differs`: the current and wanted values, the reason, and a `fix:` command.
+- `differs`: the current and wanted values, the reason, a `fix:` command, and sometimes a `note:`, such as what an update to an existing ruleset keeps. Show the note to the user with the row.
 - `unavailable`: GitHub doesn't offer the setting for this repository, such as rulesets on a private repository on a free plan, or doesn't show it to you, such as security settings for someone without admin access. The note says which. Report it; there is nothing to fix.
 
 Exit status 0 means nothing differs, 1 means something differs, and 2 means the repository couldn't be read; report the error instead of guessing. Add `--json` for machine-readable output.
@@ -32,7 +32,7 @@ Never apply a change the user didn't approve, and never change a setting the scr
 
 ## 3. Apply and check again
 
-Run each approved `fix:` command exactly as printed, in the order printed; the one exception is the `description` command, where the text the user approved replaces the placeholder. The script prints `allow_squash_merge` before the other merge settings, because GitHub refuses to turn off every merge method at once. If a command fails, report its error and go on with the rest.
+Run each approved `fix:` command exactly as printed, in the order printed; the one exception is the `description` command, where the text the user approved replaces the placeholder inside the single quotes, with each `'` in the text written as `'\''` so the shell passes it unchanged. A ruleset fix that uses `PUT` updates an existing ruleset with the file the check just wrote, which keeps that ruleset's other rules and bypass actors; if that file is gone, run the check again first. The script prints `allow_squash_merge` before the other merge settings, because GitHub refuses to turn off every merge method at once. If a command fails, report its error and go on with the rest.
 
 Then run the check again and report what changed, what still differs, and what is unavailable.
 

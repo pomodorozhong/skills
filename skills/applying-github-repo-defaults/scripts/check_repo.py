@@ -3,7 +3,9 @@
 
 Usage: check_repo.py <owner>/<repo> [--json]
 
-Reads settings with `gh api` and changes nothing. For each setting it reports
+Reads settings with `gh api` and changes nothing. When an existing ruleset
+needs rules added, the update it would send is written to a temporary file.
+For each setting it reports
 one of three states:
 
   ok           matches the default
@@ -13,11 +15,13 @@ one of three states:
 Exit status: 0 when nothing differs, 1 when something differs, 2 on an error
 such as a repo that can't be read.
 """
+import copy
 import json
 import re
 import shlex
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / 'assets'
@@ -42,6 +46,9 @@ def gh_fetch(path, paginate=False):
         return 200, body
     match = re.search(r'HTTP (\d{3})', result.stderr)
     status = int(match.group(1)) if match else 0
+    if isinstance(body, list):
+        # --slurp wraps the error body in a list, as it does each page.
+        body = body[0] if body and isinstance(body[0], dict) else None
     if body is None:
         body = {'message': result.stderr.strip() or 'gh api failed'}
     return status, body
@@ -77,7 +84,7 @@ def hidden_note(data, need, otherwise):
 
 
 def message(body):
-    return (body or {}).get('message', 'no details')
+    return body.get('message', 'no details') if isinstance(body, dict) else 'no details'
 
 
 def check_repo_fields(repo, data, defaults):
@@ -141,7 +148,7 @@ def check_description(repo, data, defaults):
     now = (data.get('description') or '').strip()
     if now:
         return [result('description', 'ok', now, spec['want'], spec['why'])]
-    fix = f'gh repo edit {repo} --description "<one line on what the repo is for>"'
+    fix = f"gh repo edit {repo} --description '<one line on what the repo is for>'"
     return [result('description', 'differs', '(empty)', spec['want'], spec['why'], fix,
                    note='needs the text from the user')]
 
@@ -185,6 +192,34 @@ def covers_default_branch(ruleset, default_branch):
     return included and not excluded
 
 
+def merged_ruleset(existing, wanted, default_branch):
+    """Return existing with the wanted rules added, so an update in place loses nothing.
+
+    Rules of a type the wanted ruleset has are merged parameter by parameter;
+    every other rule, the bypass actors, and the branches it already covers stay.
+    """
+    rules = [copy.deepcopy(r) for r in existing.get('rules') or []]
+    for want in wanted['rules']:
+        have = next((r for r in rules if r.get('type') == want['type']), None)
+        if have is None:
+            rules.append(copy.deepcopy(want))
+        elif want.get('parameters'):
+            have['parameters'] = {**(have.get('parameters') or {}), **want['parameters']}
+    ref_name = (existing.get('conditions') or {}).get('ref_name') or {}
+    ref = f'refs/heads/{default_branch}'
+    include = list(ref_name.get('include') or [])
+    include += [p for p in wanted['conditions']['ref_name']['include'] if p not in include]
+    exclude = [p for p in ref_name.get('exclude') or [] if not ref_pattern_matches(p, ref)]
+    return {
+        'name': existing['name'],
+        'target': wanted['target'],
+        'enforcement': wanted['enforcement'],
+        'conditions': {'ref_name': {'include': include, 'exclude': exclude}},
+        'rules': rules,
+        'bypass_actors': existing.get('bypass_actors') or [],
+    }
+
+
 def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):
     spec = defaults['ruleset']
     name = 'ruleset'
@@ -193,27 +228,35 @@ def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):
     if status != 200:
         return [result(name, 'unavailable', want=want, why=spec['why'],
                        note=f'rulesets are not available here (HTTP {status}: {message(listing)})')]
-    rules, same_name_id = [], None
+    rules, same_name = [], None
+    default_branch = data.get('default_branch', '')
     for summary in listing or []:
         status, ruleset = fetch(f"repos/{repo}/rulesets/{summary['id']}")
         if status != 200:
             return [result(name, 'unavailable', want=want, why=spec['why'],
                            note=f"could not read ruleset {summary['id']} (HTTP {status}: {message(ruleset)})")]
         if ruleset.get('name') == wanted['name'] and ruleset.get('source_type', 'Repository') == 'Repository':
-            same_name_id = ruleset['id']
+            same_name = ruleset
         if (ruleset.get('target') == 'branch' and ruleset.get('enforcement') == 'active'
-                and covers_default_branch(ruleset, data.get('default_branch', ''))):
+                and covers_default_branch(ruleset, default_branch)):
             rules.extend(ruleset.get('rules') or [])
     missing = [w['type'] for w in wanted['rules'] if not any(rule_matches(w, h) for h in rules)]
     if not missing:
         return [result(name, 'ok', 'all rules present', want, spec['why'])]
-    path = shlex.quote(str(wanted_path))
-    if same_name_id is not None:
-        fix = f'gh api -X PUT repos/{repo}/rulesets/{same_name_id} --input {path}'
-    else:
-        fix = f'gh api -X POST repos/{repo}/rulesets --input {path}'
     now = 'these rules missing or different: ' + ', '.join(missing)
-    return [result(name, 'differs', now, want, spec['why'], fix)]
+    if same_name is None:
+        fix = f'gh api -X POST repos/{repo}/rulesets --input {shlex.quote(str(wanted_path))}'
+        return [result(name, 'differs', now, want, spec['why'], fix)]
+    update = merged_ruleset(same_name, wanted, default_branch)
+    path = Path(tempfile.gettempdir()) / 'applying-github-repo-defaults' / (
+        f"{repo.replace('/', '-')}-ruleset-{same_name['id']}.json")
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(update, indent=2) + '\n')
+    fix = f"gh api -X PUT repos/{repo}/rulesets/{same_name['id']} --input {shlex.quote(str(path))}"
+    kept = len(update['rules']) - len(wanted['rules'])
+    note = (f"updates the existing {wanted['name']} ruleset in place; keeps its {kept} other rule(s), "
+            f"{len(update['bypass_actors'])} bypass actor(s), and the branches it covers")
+    return [result(name, 'differs', now, want, spec['why'], fix, note=note)]
 
 
 def check(repo, fetch=gh_fetch, assets=ASSETS):

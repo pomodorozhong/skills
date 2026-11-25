@@ -6,7 +6,10 @@ python3 -m unittest discover tests
 """
 import copy
 import importlib.util
+import json
+import shlex
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -62,6 +65,12 @@ class CheckRepoTests(unittest.TestCase):
     def setUp(self):
         self.responses = copy.deepcopy(MATCHING)
         self.repo = self.responses[f'repos/{REPO}'][1]
+        # A ruleset update writes the file it sends; keep it out of the real temp folder.
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        patcher = mock.patch.object(check_repo.tempfile, 'gettempdir', return_value=folder.name)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_matching_repo_has_nothing_to_fix(self):
         results = run(self.responses)
@@ -120,6 +129,37 @@ class CheckRepoTests(unittest.TestCase):
         self.assertEqual(result['state'], 'differs')
         self.assertIn('pull_request', result['now'])
         self.assertTrue(result['fix'].startswith(f'gh api -X PUT repos/{REPO}/rulesets/7 --input '))
+        sent = json.loads(Path(shlex.split(result['fix'])[-1]).read_text())
+        pull_request = next(r for r in sent['rules'] if r['type'] == 'pull_request')
+        self.assertEqual(pull_request['parameters']['allowed_merge_methods'], ['squash'])
+
+    def test_update_in_place_keeps_other_rules_and_bypass_actors(self):
+        existing = copy.deepcopy(MATCHING_RULESET)
+        existing['rules'] = [
+            {'type': 'required_status_checks', 'parameters': {'required_status_checks': [{'context': 'test'}]}},
+            {'type': 'pull_request', 'parameters': {'required_approving_review_count': 1,
+                                                    'required_reviewers': [], 'allowed_merge_methods': ['merge']}},
+        ]
+        existing['bypass_actors'] = [{'actor_id': 5, 'actor_type': 'RepositoryRole', 'bypass_mode': 'always'}]
+        existing['conditions']['ref_name'] = {'include': ['refs/heads/release/*'], 'exclude': ['refs/heads/main']}
+        _, wanted, _ = check_repo.load_defaults()
+        merged = check_repo.merged_ruleset(existing, wanted, 'main')
+        types = [r['type'] for r in merged['rules']]
+        self.assertEqual(sorted(types), ['deletion', 'non_fast_forward', 'pull_request', 'required_status_checks'])
+        pull_request = next(r for r in merged['rules'] if r['type'] == 'pull_request')
+        self.assertEqual(pull_request['parameters']['allowed_merge_methods'], ['squash'])
+        self.assertEqual(pull_request['parameters']['required_approving_review_count'], 0)
+        self.assertIn('required_reviewers', pull_request['parameters'])
+        self.assertEqual(merged['bypass_actors'], existing['bypass_actors'])
+        self.assertEqual(merged['conditions']['ref_name'],
+                         {'include': ['refs/heads/release/*', '~DEFAULT_BRANCH'], 'exclude': []})
+        self.assertTrue(check_repo.covers_default_branch(merged, 'main'))
+
+    def test_update_note_says_what_is_kept(self):
+        ruleset = self.responses[f'repos/{REPO}/rulesets/7'][1]
+        ruleset['rules'] = [{'type': 'creation'}]
+        note = run(self.responses)['ruleset']['note']
+        self.assertIn('keeps its 1 other rule(s)', note)
 
     def test_rules_split_across_rulesets_count_together(self):
         ruleset = self.responses[f'repos/{REPO}/rulesets/7'][1]
@@ -198,6 +238,25 @@ class CheckRepoTests(unittest.TestCase):
             status, body = check_repo.gh_fetch(f'repos/{REPO}/rulesets', paginate=True)
         self.assertEqual((status, body), (200, [{'id': 1}, {'id': 2}]))
         self.assertEqual(run_gh.call_args[0][0][-2:], ['--paginate', '--slurp'])
+
+    def test_paginated_error_body_is_unwrapped(self):
+        # What `gh api --paginate --slurp` really prints for a free private repo.
+        stdout = ('[{"message":"Upgrade to GitHub Pro or make this repository public to enable this feature.",'
+                  '"status":"403"}\n]')
+        stderr = 'gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)\n'
+        failed = subprocess.CompletedProcess([], 1, stdout=stdout, stderr=stderr)
+        with mock.patch.object(check_repo.subprocess, 'run', return_value=failed):
+            status, body = check_repo.gh_fetch(f'repos/{REPO}/rulesets', paginate=True)
+        self.assertEqual(status, 403)
+        self.assertIn('Upgrade to GitHub Pro', check_repo.message(body))
+
+    def test_message_tolerates_a_list_body(self):
+        self.assertEqual(check_repo.message([{'message': 'x'}]), 'no details')
+
+    def test_description_placeholder_is_single_quoted(self):
+        self.repo['description'] = ''
+        fix = run(self.responses)['description']['fix']
+        self.assertTrue(fix.endswith("--description '<one line on what the repo is for>'"))
 
     def test_unreadable_repo_raises(self):
         with self.assertRaises(RuntimeError):
