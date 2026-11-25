@@ -26,7 +26,7 @@ Exit status 0 means nothing differs, 1 means something differs, and 2 means the 
 
 If nothing differs, say so, list any unavailable settings, and stop.
 
-Otherwise show one table with a row per differing setting: the setting, its current value, the wanted value, and the reason. Then ask once for the whole list: "Apply these changes to `<owner>/<repo>`?" The user may approve all, some, or none. A `description` fix needs the text from the user; offer a one-line draft from the README, and use only text the user approved.
+Otherwise show one table with a row per differing setting: the setting, its current value, the wanted value, and the reason. If the `ruleset` note has a `WARNING`, the update would make the existing ruleset less strict, such as fewer required approvals; say so under the table in plain words, naming each loosened setting and its current and new value, and offer to keep the current values by editing the file the fix sends. Then ask once for the whole list: "Apply these changes to `<owner>/<repo>`?" The user may approve all, some, or none. A `description` fix needs the text from the user; offer a one-line draft from the README, and use only text the user approved.
 
 Never apply a change the user didn't approve, and never change a setting the script didn't report.
 

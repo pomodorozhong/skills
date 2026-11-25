@@ -161,6 +161,23 @@ class CheckRepoTests(unittest.TestCase):
         note = run(self.responses)['ruleset']['note']
         self.assertIn('keeps its 1 other rule(s)', note)
 
+    def test_update_that_loosens_the_ruleset_warns(self):
+        params = self.responses[f'repos/{REPO}/rulesets/7'][1]['rules'][2]['parameters']
+        params.update(required_approving_review_count=1, require_code_owner_review=True)
+        result = run(self.responses)['ruleset']
+        self.assertEqual(result['state'], 'differs')
+        self.assertEqual(result['loosens'], ['require_code_owner_review true -> false',
+                                             'required_approving_review_count 1 -> 0'])
+        self.assertIn('WARNING: this lowers protection', result['note'])
+        self.assertIn('required_approving_review_count 1 -> 0', check_repo.report(REPO, [result]))
+
+    def test_update_that_only_tightens_does_not_warn(self):
+        params = self.responses[f'repos/{REPO}/rulesets/7'][1]['rules'][2]['parameters']
+        params['allowed_merge_methods'] = ['squash', 'merge']
+        result = run(self.responses)['ruleset']
+        self.assertEqual(result['loosens'], [])
+        self.assertNotIn('WARNING', result['note'])
+
     def test_rules_split_across_rulesets_count_together(self):
         ruleset = self.responses[f'repos/{REPO}/rulesets/7'][1]
         other = copy.deepcopy(ruleset)

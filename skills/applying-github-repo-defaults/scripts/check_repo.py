@@ -64,9 +64,9 @@ def shown(value):
     return json.dumps(value) if not isinstance(value, str) else value
 
 
-def result(setting, state, now=None, want=None, why='', fix=None, note=None):
+def result(setting, state, now=None, want=None, why='', fix=None, note=None, loosens=None):
     return {'setting': setting, 'state': state, 'now': now, 'want': want,
-            'why': why, 'fix': fix, 'note': note}
+            'why': why, 'fix': fix, 'note': note, 'loosens': loosens or []}
 
 
 def field_arg(name, value):
@@ -220,6 +220,29 @@ def merged_ruleset(existing, wanted, default_branch):
     }
 
 
+def loosened_parameters(existing, wanted):
+    """Return the parameters the update would make less strict, as 'name now -> want' strings.
+
+    A parameter loosens when a true setting would become false or a number
+    (such as the required approval count) would go down.
+    """
+    out = []
+    for want in wanted['rules']:
+        have = next((r for r in existing.get('rules') or [] if r.get('type') == want['type']), None)
+        params = (have or {}).get('parameters') or {}
+        for key, value in (want.get('parameters') or {}).items():
+            current = params.get(key)
+            if isinstance(value, bool) or isinstance(current, bool):
+                looser = current is True and value is False
+            elif isinstance(value, (int, float)) and isinstance(current, (int, float)):
+                looser = current > value
+            else:
+                looser = False
+            if looser:
+                out.append(f'{key} {json.dumps(current)} -> {json.dumps(value)}')
+    return out
+
+
 def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):
     spec = defaults['ruleset']
     name = 'ruleset'
@@ -256,7 +279,11 @@ def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):
     kept = len(update['rules']) - len(wanted['rules'])
     note = (f"updates the existing {wanted['name']} ruleset in place; keeps its {kept} other rule(s), "
             f"{len(update['bypass_actors'])} bypass actor(s), and the branches it covers")
-    return [result(name, 'differs', now, want, spec['why'], fix, note=note)]
+    loosened = loosened_parameters(same_name, wanted)
+    if loosened:
+        note += ('. WARNING: this lowers protection the ruleset has now: ' + ', '.join(loosened)
+                 + f"; to keep them, edit {path} before running the fix")
+    return [result(name, 'differs', now, want, spec['why'], fix, note=note, loosens=loosened)]
 
 
 def check(repo, fetch=gh_fetch, assets=ASSETS):
