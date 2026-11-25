@@ -6,8 +6,10 @@ python3 -m unittest discover tests
 """
 import copy
 import importlib.util
+import subprocess
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / 'skills' / 'applying-github-repo-defaults' / 'scripts' / 'check_repo.py'
@@ -51,7 +53,7 @@ MATCHING = {
 
 
 def run(responses):
-    def fetch(path):
+    def fetch(path, paginate=False):
         return responses.get(path, (404, {'message': 'Not Found'}))
     return {r['setting']: r for r in check_repo.check(REPO, fetch)}
 
@@ -136,6 +138,31 @@ class CheckRepoTests(unittest.TestCase):
         result = run(self.responses)['ruleset']
         self.assertEqual(result['state'], 'unavailable')
         self.assertIn('HTTP 403', result['note'])
+
+    def test_rule_parameters_that_list_objects_compare_in_any_order(self):
+        checks = [{'context': 'test'}, {'context': 'lint', 'integration_id': 1}]
+        want = {'type': 'required_status_checks', 'parameters': {'required_status_checks': checks}}
+        have = copy.deepcopy(want)
+        have['parameters']['required_status_checks'].reverse()
+        self.assertTrue(check_repo.rule_matches(want, have))
+        have['parameters']['required_status_checks'].pop()
+        self.assertFalse(check_repo.rule_matches(want, have))
+
+    def test_ruleset_listing_is_paginated(self):
+        seen = []
+
+        def fetch(path, paginate=False):
+            seen.append((path, paginate))
+            return MATCHING.get(path, (404, {'message': 'Not Found'}))
+        check_repo.check(REPO, fetch)
+        self.assertIn((f'repos/{REPO}/rulesets', True), seen)
+
+    def test_paginated_pages_are_joined(self):
+        completed = subprocess.CompletedProcess([], 0, stdout='[[{"id": 1}], [{"id": 2}]]', stderr='')
+        with mock.patch.object(check_repo.subprocess, 'run', return_value=completed) as run_gh:
+            status, body = check_repo.gh_fetch(f'repos/{REPO}/rulesets', paginate=True)
+        self.assertEqual((status, body), (200, [{'id': 1}, {'id': 2}]))
+        self.assertEqual(run_gh.call_args[0][0][-2:], ['--paginate', '--slurp'])
 
     def test_unreadable_repo_raises(self):
         with self.assertRaises(RuntimeError):

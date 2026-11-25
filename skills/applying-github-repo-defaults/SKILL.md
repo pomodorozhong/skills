@@ -9,10 +9,10 @@ Check one repository's GitHub settings against the defaults in [assets/defaults.
 
 ## 1. Check
 
-Find the repository as `<owner>/<repo>`: from the user, or from `gh repo view --json nameWithOwner -q .nameWithOwner` in the current checkout. Then run:
+Find the repository as `<owner>/<repo>`: from the user, or from `gh repo view --json nameWithOwner -q .nameWithOwner` in the current checkout. The script lives in this skill's own `scripts/` folder; run it with that folder's full path from wherever you are:
 
 ```bash
-python3 scripts/check_repo.py <owner>/<repo>
+python3 <this skill's folder>/scripts/check_repo.py <owner>/<repo>
 ```
 
 The script reads the settings with `gh api` and prints each setting that is not `ok`:

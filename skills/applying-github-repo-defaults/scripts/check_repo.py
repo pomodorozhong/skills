@@ -24,14 +24,21 @@ ASSETS = Path(__file__).resolve().parent.parent / 'assets'
 DEFAULT_BRANCH_REFS = {'~DEFAULT_BRANCH', '~ALL'}
 
 
-def gh_fetch(path):
-    """Return (HTTP status, parsed body) for a GET through `gh api`."""
-    result = subprocess.run(['gh', 'api', path], capture_output=True, text=True)
+def gh_fetch(path, paginate=False):
+    """Return (HTTP status, parsed body) for a GET through `gh api`.
+
+    With paginate, the path must return a JSON array; every page is read and
+    the pages are joined into one list.
+    """
+    command = ['gh', 'api', path] + (['--paginate', '--slurp'] if paginate else [])
+    result = subprocess.run(command, capture_output=True, text=True)
     try:
         body = json.loads(result.stdout) if result.stdout.strip() else None
     except json.JSONDecodeError:
         body = None
     if result.returncode == 0:
+        if paginate and isinstance(body, list):
+            body = [item for page in body for item in (page or [])]
         return 200, body
     match = re.search(r'HTTP (\d{3})', result.stderr)
     status = int(match.group(1)) if match else 0
@@ -124,6 +131,13 @@ def check_description(repo, data, defaults):
                    note='needs the text from the user')]
 
 
+def same_items(a, b):
+    """Compare two lists in any order; items may be objects, which can't be sorted directly."""
+    def key(item):
+        return json.dumps(item, sort_keys=True)
+    return sorted(map(key, a)) == sorted(map(key, b))
+
+
 def rule_matches(want, have):
     if want['type'] != have.get('type'):
         return False
@@ -131,7 +145,7 @@ def rule_matches(want, have):
     for key, value in (want.get('parameters') or {}).items():
         current = params.get(key)
         if isinstance(value, list):
-            if sorted(current or []) != sorted(value):
+            if not same_items(current or [], value):
                 return False
         elif current != value:
             return False
@@ -147,7 +161,7 @@ def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):
     spec = defaults['ruleset']
     name = 'ruleset'
     want = f"{wanted['name']}: " + ', '.join(r['type'] for r in wanted['rules'])
-    status, listing = fetch(f'repos/{repo}/rulesets')
+    status, listing = fetch(f'repos/{repo}/rulesets', paginate=True)
     if status != 200:
         return [result(name, 'unavailable', want=want, why=spec['why'],
                        note=f'rulesets are not available here (HTTP {status}: {message(listing)})')]
