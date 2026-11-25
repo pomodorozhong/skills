@@ -62,22 +62,38 @@ def result(setting, state, now=None, want=None, why='', fix=None, note=None):
             'why': why, 'fix': fix, 'note': note}
 
 
+def field_arg(name, value):
+    """Return a quoted `gh api` field flag: -f keeps a string as is, -F types booleans and numbers."""
+    if isinstance(value, str):
+        return '-f ' + shlex.quote(f'{name}={value}')
+    return '-F ' + shlex.quote(f'{name}={json.dumps(value)}')
+
+
+def hidden_note(data, need, otherwise):
+    """Say why GitHub left a field out: missing access if the user lacks it, else `otherwise`."""
+    if not (data.get('permissions') or {}).get(need, True):
+        return f'GitHub shows it only to people with {need} access to the repo, and you have none'
+    return otherwise
+
+
 def message(body):
     return (body or {}).get('message', 'no details')
 
 
 def check_repo_fields(repo, data, defaults):
     out = []
-    for field, spec in defaults['repo'].items():
+    # GitHub refuses to turn off every merge method at once, so squash is fixed first.
+    fields = sorted(defaults['repo'].items(), key=lambda item: item[0] != 'allow_squash_merge')
+    for field, spec in fields:
         if field not in data:
-            out.append(result(field, 'unavailable', want=spec['want'], why=spec['why'],
-                              note='GitHub did not return it; it is shown only to people with push access'))
+            note = hidden_note(data, 'push', 'GitHub did not return it; check the field name in assets/defaults.json')
+            out.append(result(field, 'unavailable', want=spec['want'], why=spec['why'], note=note))
             continue
         now = data[field]
         if now == spec['want']:
             out.append(result(field, 'ok', now, spec['want'], spec['why']))
         else:
-            fix = f"gh api -X PATCH repos/{repo} -F {field}={shown(spec['want'])}"
+            fix = f"gh api -X PATCH repos/{repo} {field_arg(field, spec['want'])}"
             out.append(result(field, 'differs', now, spec['want'], spec['why'], fix))
     return out
 
@@ -88,8 +104,8 @@ def check_security(repo, data, defaults):
     for feature, spec in defaults['security_and_analysis'].items():
         name = f'security_and_analysis.{feature}'
         if feature not in current:
-            out.append(result(name, 'unavailable', want=spec['want'], why=spec['why'],
-                              note='not offered for this repo; private repos need GitHub Advanced Security'))
+            note = hidden_note(data, 'admin', 'not offered for this repo; private repos need GitHub Advanced Security')
+            out.append(result(name, 'unavailable', want=spec['want'], why=spec['why'], note=note))
             continue
         now = current[feature].get('status')
         if now == spec['want']:
@@ -114,9 +130,8 @@ def check_actions(repo, fetch, defaults):
         if now == spec['want']:
             out.append(result(name, 'ok', now, spec['want'], spec['why']))
         else:
-            flag = '-f' if isinstance(spec['want'], str) else '-F'
             fix = (f"gh api -X PUT repos/{repo}/actions/permissions/workflow "
-                   f"{flag} {field}={shown(spec['want'])}")
+                   f"{field_arg(field, spec['want'])}")
             out.append(result(name, 'differs', now, spec['want'], spec['why'], fix))
     return out
 
@@ -152,9 +167,22 @@ def rule_matches(want, have):
     return True
 
 
+def ref_pattern_matches(pattern, ref):
+    """Match a ruleset ref pattern the way GitHub does: `*` stops at `/`, `**` doesn't."""
+    if pattern in DEFAULT_BRANCH_REFS:
+        return True
+    regex = ''
+    for part in re.split(r'(\*\*|\*|\?)', pattern):
+        regex += {'**': '.*', '*': '[^/]*', '?': '[^/]'}.get(part, re.escape(part))
+    return re.fullmatch(regex, ref) is not None
+
+
 def covers_default_branch(ruleset, default_branch):
-    include = set(((ruleset.get('conditions') or {}).get('ref_name') or {}).get('include') or [])
-    return bool(include & (DEFAULT_BRANCH_REFS | {f'refs/heads/{default_branch}'}))
+    ref_name = (ruleset.get('conditions') or {}).get('ref_name') or {}
+    ref = f'refs/heads/{default_branch}'
+    included = any(ref_pattern_matches(p, ref) for p in ref_name.get('include') or [])
+    excluded = any(ref_pattern_matches(p, ref) for p in ref_name.get('exclude') or [])
+    return included and not excluded
 
 
 def check_ruleset(repo, data, fetch, defaults, wanted, wanted_path):

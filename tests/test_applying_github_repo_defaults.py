@@ -139,6 +139,41 @@ class CheckRepoTests(unittest.TestCase):
         self.assertEqual(result['state'], 'unavailable')
         self.assertIn('HTTP 403', result['note'])
 
+    def test_string_fields_are_quoted_raw_fields(self):
+        self.assertEqual(check_repo.field_arg('title', 'two words'), "-f 'title=two words'")
+        self.assertEqual(check_repo.field_arg('title', '@file'), '-f title=@file')
+        self.assertEqual(check_repo.field_arg('has_wiki', False), '-F has_wiki=false')
+
+    def test_squash_is_fixed_first_whatever_the_order_in_defaults(self):
+        defaults, _, _ = check_repo.load_defaults()
+        defaults['repo'] = dict(reversed(list(defaults['repo'].items())))
+        self.repo.update(allow_squash_merge=False, allow_merge_commit=True)
+        results = check_repo.check_repo_fields(REPO, self.repo, defaults)
+        self.assertEqual(results[0]['setting'], 'allow_squash_merge')
+
+    def test_hidden_security_settings_say_admin_access_is_missing(self):
+        del self.repo['security_and_analysis']
+        self.repo['permissions'] = {'admin': False, 'push': True}
+        note = run(self.responses)['security_and_analysis.secret_scanning']['note']
+        self.assertIn('admin access', note)
+
+    def test_unknown_field_for_an_admin_points_at_defaults(self):
+        del self.repo['delete_branch_on_merge']
+        self.repo['permissions'] = {'admin': True, 'push': True}
+        self.assertIn('defaults.json', run(self.responses)['delete_branch_on_merge']['note'])
+
+    def test_ruleset_that_excludes_the_default_branch_does_not_count(self):
+        self.responses[f'repos/{REPO}/rulesets/7'][1]['conditions']['ref_name'] = {
+            'include': ['~ALL'], 'exclude': ['refs/heads/main']}
+        self.assertEqual(run(self.responses)['ruleset']['state'], 'differs')
+
+    def test_ref_patterns_match_like_github(self):
+        match = check_repo.ref_pattern_matches
+        self.assertTrue(match('refs/heads/ma*', 'refs/heads/main'))
+        self.assertFalse(match('refs/heads/*', 'refs/heads/release/1'))
+        self.assertTrue(match('refs/heads/**', 'refs/heads/release/1'))
+        self.assertFalse(match('refs/heads/m.in', 'refs/heads/main'))
+
     def test_rule_parameters_that_list_objects_compare_in_any_order(self):
         checks = [{'context': 'test'}, {'context': 'lint', 'integration_id': 1}]
         want = {'type': 'required_status_checks', 'parameters': {'required_status_checks': checks}}
