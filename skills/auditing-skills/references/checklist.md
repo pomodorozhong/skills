@@ -69,5 +69,5 @@ A snapshot of [Anthropic's skill authoring best practices](https://platform.clau
 
 ## Beyond the guide
 
-26. **Repository rules.** The repository's own rules for skills (step 1 of the skill), such as standalone installs or approval for dependencies between skills, are followed, and its tests cover what they can. A project skill does not repeat what the repository's always-loaded `CLAUDE.md` or `AGENTS.md` already says, and does not contradict it.
+26. **Repository rules.** The repository's own rules for skills (step 1 of the skill), such as how dependencies are stated or approval for dependencies between skills, are followed, and its tests cover what they can. A project skill does not repeat what the repository's always-loaded `CLAUDE.md` or `AGENTS.md` already says, and does not contradict it.
 27. **Agent metadata.** When the repository targets other agents too (for example Codex `agents/openai.yaml`), each skill has the metadata the others have, and it agrees with the frontmatter.
