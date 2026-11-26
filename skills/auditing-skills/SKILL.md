@@ -24,7 +24,7 @@ Audit progress:
 ## 1. Find the skills and their rules
 
 - Audit the skills the user names. Otherwise audit every skill in the current repository: step 3's script finds them at any depth from the repository root, including `.claude/skills/`, `.agents/skills/`, `skills/`, and plugin folders, and skips dependencies, build output, and worktrees.
-- Read the repository's README, `AGENTS.md` or `CLAUDE.md`, contributing docs, and tests. They may set rules that override or add to the guide, such as "each skill can be installed on its own" or an approval rule for dependencies between skills.
+- Read the repository's README, `AGENTS.md` or `CLAUDE.md`, contributing docs, and tests. They may set rules that override or add to the guide, such as how a skill must state its dependencies or an approval rule for dependencies between skills.
 - Note how each skill is used, because some points depend on it: a project skill that stays in its repository may link to the repository's docs, while a skill that is published or installed elsewhere must hold everything it needs. Note which agents load the skills (Claude Code, Codex, the API).
 
 ## 2. Check the guide is unchanged
